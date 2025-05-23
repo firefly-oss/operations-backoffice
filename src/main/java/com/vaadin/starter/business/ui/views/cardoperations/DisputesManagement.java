@@ -23,7 +23,9 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.starter.business.backend.dto.cardoperations.DisputeDTO;
 import com.vaadin.starter.business.backend.service.CardService;
+import com.vaadin.starter.business.backend.service.DisputeService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -44,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @PageTitle(NavigationConstants.DISPUTES_MANAGEMENT)
@@ -51,9 +54,9 @@ import java.util.List;
 public class DisputesManagement extends ViewFrame {
 
     public static final int MOBILE_BREAKPOINT = 480;
-    private Grid<Dispute> grid;
+    private Grid<DisputeDTO> grid;
     private Registration resizeListener;
-    private ListDataProvider<Dispute> dataProvider;
+    private ListDataProvider<DisputeDTO> dataProvider;
 
     // Filter form fields
     private TextField disputeIdFilter;
@@ -67,10 +70,12 @@ public class DisputesManagement extends ViewFrame {
     private DatePicker dateToFilter;
 
     private final CardService cardService;
+    private final DisputeService disputeService;
 
     @Autowired
-    public DisputesManagement(CardService cardService) {
+    public DisputesManagement(CardService cardService, DisputeService disputeService) {
         this.cardService = cardService;
+        this.disputeService = disputeService;
         setViewContent(createContent());
     }
 
@@ -183,8 +188,8 @@ public class DisputesManagement extends ViewFrame {
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
         grid.addThemeName("mobile");
 
-        // Initialize with dummy data
-        List<Dispute> disputes = getDummyDisputes();
+        // Initialize with data from service
+        Collection<DisputeDTO> disputes = disputeService.getDisputes();
         dataProvider = new ListDataProvider<>(disputes);
         grid.setDataProvider(dataProvider);
 
@@ -196,40 +201,40 @@ public class DisputesManagement extends ViewFrame {
                 .setVisible(false);
 
         // "Desktop" columns
-        grid.addColumn(Dispute::getDisputeId)
+        grid.addColumn(DisputeDTO::getDisputeId)
                 .setAutoWidth(true)
                 .setFlexGrow(0)
                 .setFrozen(true)
                 .setHeader("Dispute ID")
                 .setSortable(true);
-        grid.addColumn(Dispute::getCardNumber)
+        grid.addColumn(DisputeDTO::getCardNumber)
                 .setHeader("Card Number")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(Dispute::getCardHolderName)
+        grid.addColumn(DisputeDTO::getCardHolderName)
                 .setHeader("Card Holder Name")
                 .setSortable(true)
                 .setWidth("200px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(Dispute::getStatus)
+                .setComparator(DisputeDTO::getStatus)
                 .setWidth("150px");
-        grid.addColumn(Dispute::getType)
+        grid.addColumn(DisputeDTO::getType)
                 .setHeader("Type")
                 .setSortable(true)
                 .setWidth("200px");
         grid.addColumn(dispute -> UIUtils.formatAmount(dispute.getAmount()))
                 .setHeader("Amount")
                 .setSortable(true)
-                .setComparator(Dispute::getAmount)
+                .setComparator(DisputeDTO::getAmount)
                 .setWidth("120px");
-        grid.addColumn(new LocalDateRenderer<>(Dispute::getDate, "MMM dd, yyyy"))
+        grid.addColumn(new LocalDateRenderer<>(DisputeDTO::getDate, "MMM dd, yyyy"))
                 .setAutoWidth(true)
-                .setComparator(Dispute::getDate)
+                .setComparator(DisputeDTO::getDate)
                 .setFlexGrow(0)
                 .setHeader("Date");
-        grid.addColumn(Dispute::getMerchant)
+        grid.addColumn(DisputeDTO::getMerchant)
                 .setHeader("Merchant")
                 .setSortable(true)
                 .setWidth("200px");
@@ -250,14 +255,49 @@ public class DisputesManagement extends ViewFrame {
                 UIUtils.showNotification("Update form for dispute " + dispute.getDisputeId() + " would open here");
             });
 
-            actions.add(viewButton, updateButton);
+            // Add status-specific action buttons
+            if (dispute.getStatus().equals("New") || dispute.getStatus().equals("In Progress")) {
+                Button documentButton = UIUtils.createSmallButton("Add Documentation");
+                documentButton.getElement().getThemeList().add("contrast");
+                documentButton.addClickListener(e -> {
+                    // In a real app, this would open a form to add documentation
+                    String documentation = "Documentation added on " + LocalDate.now();
+                    disputeService.addDocumentation(dispute.getDisputeId(), documentation);
+                    disputeService.updateDisputeStatus(dispute.getDisputeId(), "Pending Documentation");
+                    refreshGrid();
+                    UIUtils.showNotification("Documentation added and status updated");
+                });
+                actions.add(viewButton, updateButton, documentButton);
+            } else if (dispute.getStatus().equals("Pending Documentation")) {
+                Button resolveButton = UIUtils.createSmallButton("Resolve");
+                resolveButton.getElement().getThemeList().add("success");
+                Button rejectButton = UIUtils.createSmallButton("Reject");
+                rejectButton.getElement().getThemeList().add("error");
+
+                resolveButton.addClickListener(e -> {
+                    disputeService.resolveDispute(dispute.getDisputeId());
+                    refreshGrid();
+                    UIUtils.showNotification("Dispute resolved");
+                });
+
+                rejectButton.addClickListener(e -> {
+                    disputeService.rejectDispute(dispute.getDisputeId());
+                    refreshGrid();
+                    UIUtils.showNotification("Dispute rejected");
+                });
+
+                actions.add(viewButton, updateButton, resolveButton, rejectButton);
+            } else {
+                actions.add(viewButton, updateButton);
+            }
+
             return actions;
-        }).setHeader("Actions").setWidth("150px");
+        }).setHeader("Actions").setWidth("200px");
 
         return grid;
     }
 
-    private Component createStatusBadge(Dispute dispute) {
+    private Component createStatusBadge(DisputeDTO dispute) {
         String status = dispute.getStatus();
         BadgeColor color;
 
@@ -281,11 +321,11 @@ public class DisputesManagement extends ViewFrame {
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private DisputeMobileTemplate getMobileTemplate(Dispute dispute) {
+    private DisputeMobileTemplate getMobileTemplate(DisputeDTO dispute) {
         return new DisputeMobileTemplate(dispute);
     }
 
-    private void viewDetails(Dispute dispute) {
+    private void viewDetails(DisputeDTO dispute) {
         // Navigate to dispute details view
         // UI.getCurrent().navigate(DisputeDetails.class, dispute.getDisputeId());
         // For demo purposes, we'll just show a notification
@@ -310,7 +350,7 @@ public class DisputesManagement extends ViewFrame {
 
     private void updateVisibleColumns(int width) {
         boolean mobile = width < MOBILE_BREAKPOINT;
-        List<Grid.Column<Dispute>> columns = grid.getColumns();
+        List<Grid.Column<DisputeDTO>> columns = grid.getColumns();
 
         // "Mobile" column
         columns.get(0).setVisible(mobile);
@@ -413,32 +453,23 @@ public class DisputesManagement extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private List<Dispute> getDummyDisputes() {
-        List<Dispute> disputes = new ArrayList<>();
-
-        disputes.add(new Dispute("DSP001", "4532123456781234", "John Smith", "In Progress", "Unauthorized Transaction", 125.50, LocalDate.now().minusDays(5), "Online Store Inc."));
-        disputes.add(new Dispute("DSP002", "4532123456781235", "John Smith", "Resolved", "Duplicate Charge", 75.00, LocalDate.now().minusDays(15), "Subscription Service"));
-        disputes.add(new Dispute("DSP003", "4532123456781236", "Jane Doe", "Pending Documentation", "Merchandise Not Received", 349.99, LocalDate.now().minusDays(3), "Electronics Shop"));
-        disputes.add(new Dispute("DSP004", "4532123456781237", "Jane Doe", "Rejected", "Incorrect Amount", 50.00, LocalDate.now().minusDays(20), "Restaurant Chain"));
-        disputes.add(new Dispute("DSP005", "4532123456781238", "Robert Johnson", "New", "Defective Merchandise", 199.95, LocalDate.now().minusDays(1), "Furniture Store"));
-        disputes.add(new Dispute("DSP006", "4532123456781239", "Sarah Williams", "In Progress", "Unauthorized Transaction", 1250.00, LocalDate.now().minusDays(7), "Travel Agency"));
-        disputes.add(new Dispute("DSP007", "4532123456781240", "Michael Brown", "Pending Documentation", "Other", 89.99, LocalDate.now().minusDays(10), "Streaming Service"));
-        disputes.add(new Dispute("DSP008", "4532123456781241", "Emily Davis", "Resolved", "Duplicate Charge", 45.50, LocalDate.now().minusDays(25), "Gas Station"));
-        disputes.add(new Dispute("DSP009", "4532123456781242", "David Miller", "In Progress", "Merchandise Not Received", 799.00, LocalDate.now().minusDays(8), "Computer Store"));
-        disputes.add(new Dispute("DSP010", "4532123456781243", "Jennifer Wilson", "Rejected", "Incorrect Amount", 120.75, LocalDate.now().minusDays(18), "Department Store"));
-
-        return disputes;
+    private void refreshGrid() {
+        // Refresh data from service
+        Collection<DisputeDTO> disputes = disputeService.getDisputes();
+        dataProvider = new ListDataProvider<>(disputes);
+        grid.setDataProvider(dataProvider);
+        applyFilters(); // Re-apply any active filters
     }
+
 
     /**
      * A layout for displaying Dispute info in a mobile friendly format.
      */
     private class DisputeMobileTemplate extends FlexBoxLayout {
 
-        private Dispute dispute;
+        private DisputeDTO dispute;
 
-        public DisputeMobileTemplate(Dispute dispute) {
+        public DisputeMobileTemplate(DisputeDTO dispute) {
             this.dispute = dispute;
 
             UIUtils.setLineHeight(LineHeight.M, this);
@@ -479,102 +510,4 @@ public class DisputesManagement extends ViewFrame {
         }
     }
 
-    /**
-     * Class representing a card dispute.
-     */
-    public static class Dispute {
-        private String disputeId;
-        private String cardNumber;
-        private String cardHolderName;
-        private String status;
-        private String type;
-        private Double amount;
-        private LocalDate date;
-        private String merchant;
-        private String description;
-
-        public Dispute(String disputeId, String cardNumber, String cardHolderName, String status, 
-                      String type, Double amount, LocalDate date, String merchant) {
-            this.disputeId = disputeId;
-            this.cardNumber = cardNumber;
-            this.cardHolderName = cardHolderName;
-            this.status = status;
-            this.type = type;
-            this.amount = amount;
-            this.date = date;
-            this.merchant = merchant;
-        }
-
-        public String getDisputeId() {
-            return disputeId;
-        }
-
-        public void setDisputeId(String disputeId) {
-            this.disputeId = disputeId;
-        }
-
-        public String getCardNumber() {
-            return cardNumber;
-        }
-
-        public void setCardNumber(String cardNumber) {
-            this.cardNumber = cardNumber;
-        }
-
-        public String getCardHolderName() {
-            return cardHolderName;
-        }
-
-        public void setCardHolderName(String cardHolderName) {
-            this.cardHolderName = cardHolderName;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public LocalDate getDate() {
-            return date;
-        }
-
-        public void setDate(LocalDate date) {
-            this.date = date;
-        }
-
-        public String getMerchant() {
-            return merchant;
-        }
-
-        public void setMerchant(String merchant) {
-            this.merchant = merchant;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-    }
 }

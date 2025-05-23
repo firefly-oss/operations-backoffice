@@ -22,7 +22,9 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.starter.business.backend.dto.cardoperations.ReplacementRequestDTO;
 import com.vaadin.starter.business.backend.service.CardService;
+import com.vaadin.starter.business.backend.service.ReplacementRequestService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -43,6 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @PageTitle(NavigationConstants.REPLACEMENT_REQUESTS)
@@ -50,9 +53,9 @@ import java.util.List;
 public class ReplacementRequests extends ViewFrame {
 
     public static final int MOBILE_BREAKPOINT = 480;
-    private Grid<ReplacementRequest> grid;
+    private Grid<ReplacementRequestDTO> grid;
     private Registration resizeListener;
-    private ListDataProvider<ReplacementRequest> dataProvider;
+    private ListDataProvider<ReplacementRequestDTO> dataProvider;
 
     // Filter form fields
     private TextField requestIdFilter;
@@ -66,10 +69,12 @@ public class ReplacementRequests extends ViewFrame {
     private DatePicker completionDateToFilter;
 
     private final CardService cardService;
+    private final ReplacementRequestService replacementRequestService;
 
     @Autowired
-    public ReplacementRequests(CardService cardService) {
+    public ReplacementRequests(CardService cardService, ReplacementRequestService replacementRequestService) {
         this.cardService = cardService;
+        this.replacementRequestService = replacementRequestService;
         setViewContent(createContent());
     }
 
@@ -85,14 +90,14 @@ public class ReplacementRequests extends ViewFrame {
     private Component createHeader() {
         H3 header = new H3("Card Replacement Requests");
         header.getStyle().set("margin-top", "0");
-        
+
         Span description = new Span("Manage card replacement requests for lost, stolen, damaged, or expired cards.");
         description.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        
+
         FlexBoxLayout headerLayout = new FlexBoxLayout(header, description);
         headerLayout.setFlexDirection(FlexDirection.COLUMN);
         headerLayout.setMargin(Bottom.M);
-        
+
         return headerLayout;
     }
 
@@ -182,8 +187,8 @@ public class ReplacementRequests extends ViewFrame {
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
         grid.addThemeName("mobile");
 
-        // Initialize with dummy data
-        List<ReplacementRequest> requests = getDummyReplacementRequests();
+        // Initialize with data from service
+        Collection<ReplacementRequestDTO> requests = replacementRequestService.getReplacementRequests();
         dataProvider = new ListDataProvider<>(requests);
         grid.setDataProvider(dataProvider);
 
@@ -195,40 +200,40 @@ public class ReplacementRequests extends ViewFrame {
                 .setVisible(false);
 
         // "Desktop" columns
-        grid.addColumn(ReplacementRequest::getRequestId)
+        grid.addColumn(ReplacementRequestDTO::getRequestId)
                 .setAutoWidth(true)
                 .setFlexGrow(0)
                 .setFrozen(true)
                 .setHeader("Request ID")
                 .setSortable(true);
-        grid.addColumn(ReplacementRequest::getCardNumber)
+        grid.addColumn(ReplacementRequestDTO::getCardNumber)
                 .setHeader("Card Number")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(ReplacementRequest::getCardHolderName)
+        grid.addColumn(ReplacementRequestDTO::getCardHolderName)
                 .setHeader("Card Holder Name")
                 .setSortable(true)
                 .setWidth("200px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(ReplacementRequest::getStatus)
+                .setComparator(ReplacementRequestDTO::getStatus)
                 .setWidth("120px");
-        grid.addColumn(ReplacementRequest::getReason)
+        grid.addColumn(ReplacementRequestDTO::getReason)
                 .setHeader("Reason")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(ReplacementRequest::getRequestDate, "MMM dd, yyyy"))
+        grid.addColumn(new LocalDateRenderer<>(ReplacementRequestDTO::getRequestDate, "MMM dd, yyyy"))
                 .setAutoWidth(true)
-                .setComparator(ReplacementRequest::getRequestDate)
+                .setComparator(ReplacementRequestDTO::getRequestDate)
                 .setFlexGrow(0)
                 .setHeader("Request Date");
-        grid.addColumn(new LocalDateRenderer<>(ReplacementRequest::getCompletionDate, "MMM dd, yyyy"))
+        grid.addColumn(new LocalDateRenderer<>(ReplacementRequestDTO::getCompletionDate, "MMM dd, yyyy"))
                 .setAutoWidth(true)
-                .setComparator(ReplacementRequest::getCompletionDate)
+                .setComparator(ReplacementRequestDTO::getCompletionDate)
                 .setFlexGrow(0)
                 .setHeader("Completion Date");
-        grid.addColumn(ReplacementRequest::getNewCardNumber)
+        grid.addColumn(ReplacementRequestDTO::getNewCardNumber)
                 .setHeader("New Card Number")
                 .setSortable(true)
                 .setWidth("150px");
@@ -249,17 +254,41 @@ public class ReplacementRequests extends ViewFrame {
                 UIUtils.showNotification("Update form for request " + request.getRequestId() + " would open here");
             });
 
-            actions.add(viewButton, updateButton);
+            // Add status-specific action buttons
+            if (request.getStatus().equals("New") || request.getStatus().equals("In Progress")) {
+                Button issueButton = UIUtils.createSmallButton("Issue Card");
+                issueButton.getElement().getThemeList().add("success");
+                issueButton.addClickListener(e -> {
+                    // Generate a new card number (in a real app, this would come from a card issuing system)
+                    String newCardNumber = "4532" + System.currentTimeMillis() % 1000000000000L;
+                    replacementRequestService.issueNewCard(request.getRequestId(), newCardNumber);
+                    refreshGrid();
+                    UIUtils.showNotification("New card issued: " + newCardNumber);
+                });
+                actions.add(viewButton, updateButton, issueButton);
+            } else if (request.getStatus().equals("Card Issued")) {
+                Button completeButton = UIUtils.createSmallButton("Complete");
+                completeButton.getElement().getThemeList().add("success");
+                completeButton.addClickListener(e -> {
+                    replacementRequestService.completeRequest(request.getRequestId());
+                    refreshGrid();
+                    UIUtils.showNotification("Request marked as completed");
+                });
+                actions.add(viewButton, updateButton, completeButton);
+            } else {
+                actions.add(viewButton, updateButton);
+            }
+
             return actions;
-        }).setHeader("Actions").setWidth("150px");
+        }).setHeader("Actions").setWidth("200px");
 
         return grid;
     }
 
-    private Component createStatusBadge(ReplacementRequest request) {
+    private Component createStatusBadge(ReplacementRequestDTO request) {
         String status = request.getStatus();
         BadgeColor color;
-        
+
         switch (status) {
             case "Completed":
                 color = BadgeColor.SUCCESS;
@@ -274,15 +303,15 @@ public class ReplacementRequests extends ViewFrame {
             default:
                 color = BadgeColor.NORMAL;
         }
-        
+
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private ReplacementMobileTemplate getMobileTemplate(ReplacementRequest request) {
+    private ReplacementMobileTemplate getMobileTemplate(ReplacementRequestDTO request) {
         return new ReplacementMobileTemplate(request);
     }
 
-    private void viewDetails(ReplacementRequest request) {
+    private void viewDetails(ReplacementRequestDTO request) {
         // Navigate to request details view
         // UI.getCurrent().navigate(ReplacementRequestDetails.class, request.getRequestId());
         // For demo purposes, we'll just show a notification
@@ -307,7 +336,7 @@ public class ReplacementRequests extends ViewFrame {
 
     private void updateVisibleColumns(int width) {
         boolean mobile = width < MOBILE_BREAKPOINT;
-        List<Grid.Column<ReplacementRequest>> columns = grid.getColumns();
+        List<Grid.Column<ReplacementRequestDTO>> columns = grid.getColumns();
 
         // "Mobile" column
         columns.get(0).setVisible(mobile);
@@ -410,32 +439,12 @@ public class ReplacementRequests extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private List<ReplacementRequest> getDummyReplacementRequests() {
-        List<ReplacementRequest> requests = new ArrayList<>();
-        
-        requests.add(new ReplacementRequest("REP001", "4532123456781234", "John Smith", "In Progress", "Lost", 
-                LocalDate.now().minusDays(5), null, null));
-        requests.add(new ReplacementRequest("REP002", "4532123456781235", "John Smith", "Completed", "Expired", 
-                LocalDate.now().minusDays(15), LocalDate.now().minusDays(10), "4532123456789876"));
-        requests.add(new ReplacementRequest("REP003", "4532123456781236", "Jane Doe", "New", "Damaged", 
-                LocalDate.now().minusDays(2), null, null));
-        requests.add(new ReplacementRequest("REP004", "4532123456781237", "Jane Doe", "Rejected", "Other", 
-                LocalDate.now().minusDays(20), LocalDate.now().minusDays(18), null));
-        requests.add(new ReplacementRequest("REP005", "4532123456781238", "Robert Johnson", "Card Issued", "Stolen", 
-                LocalDate.now().minusDays(8), LocalDate.now().minusDays(3), "4532123456789877"));
-        requests.add(new ReplacementRequest("REP006", "4532123456781239", "Sarah Williams", "In Progress", "Compromised", 
-                LocalDate.now().minusDays(4), null, null));
-        requests.add(new ReplacementRequest("REP007", "4532123456781240", "Michael Brown", "New", "Name Change", 
-                LocalDate.now().minusDays(1), null, null));
-        requests.add(new ReplacementRequest("REP008", "4532123456781241", "Emily Davis", "Completed", "Lost", 
-                LocalDate.now().minusDays(25), LocalDate.now().minusDays(20), "4532123456789878"));
-        requests.add(new ReplacementRequest("REP009", "4532123456781242", "David Miller", "Card Issued", "Damaged", 
-                LocalDate.now().minusDays(10), LocalDate.now().minusDays(5), "4532123456789879"));
-        requests.add(new ReplacementRequest("REP010", "4532123456781243", "Jennifer Wilson", "Rejected", "Other", 
-                LocalDate.now().minusDays(18), LocalDate.now().minusDays(15), null));
-        
-        return requests;
+    private void refreshGrid() {
+        // Refresh data from service
+        Collection<ReplacementRequestDTO> requests = replacementRequestService.getReplacementRequests();
+        dataProvider = new ListDataProvider<>(requests);
+        grid.setDataProvider(dataProvider);
+        applyFilters(); // Re-apply any active filters
     }
 
     /**
@@ -443,9 +452,9 @@ public class ReplacementRequests extends ViewFrame {
      */
     private class ReplacementMobileTemplate extends FlexBoxLayout {
 
-        private ReplacementRequest request;
+        private ReplacementRequestDTO request;
 
-        public ReplacementMobileTemplate(ReplacementRequest request) {
+        public ReplacementMobileTemplate(ReplacementRequestDTO request) {
             this.request = request;
 
             UIUtils.setLineHeight(LineHeight.M, this);
@@ -486,102 +495,4 @@ public class ReplacementRequests extends ViewFrame {
         }
     }
 
-    /**
-     * Class representing a card replacement request.
-     */
-    public static class ReplacementRequest {
-        private String requestId;
-        private String cardNumber;
-        private String cardHolderName;
-        private String status;
-        private String reason;
-        private LocalDate requestDate;
-        private LocalDate completionDate;
-        private String newCardNumber;
-        private String notes;
-
-        public ReplacementRequest(String requestId, String cardNumber, String cardHolderName, String status, 
-                                 String reason, LocalDate requestDate, LocalDate completionDate, String newCardNumber) {
-            this.requestId = requestId;
-            this.cardNumber = cardNumber;
-            this.cardHolderName = cardHolderName;
-            this.status = status;
-            this.reason = reason;
-            this.requestDate = requestDate;
-            this.completionDate = completionDate;
-            this.newCardNumber = newCardNumber;
-        }
-
-        public String getRequestId() {
-            return requestId;
-        }
-
-        public void setRequestId(String requestId) {
-            this.requestId = requestId;
-        }
-
-        public String getCardNumber() {
-            return cardNumber;
-        }
-
-        public void setCardNumber(String cardNumber) {
-            this.cardNumber = cardNumber;
-        }
-
-        public String getCardHolderName() {
-            return cardHolderName;
-        }
-
-        public void setCardHolderName(String cardHolderName) {
-            this.cardHolderName = cardHolderName;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public void setReason(String reason) {
-            this.reason = reason;
-        }
-
-        public LocalDate getRequestDate() {
-            return requestDate;
-        }
-
-        public void setRequestDate(LocalDate requestDate) {
-            this.requestDate = requestDate;
-        }
-
-        public LocalDate getCompletionDate() {
-            return completionDate;
-        }
-
-        public void setCompletionDate(LocalDate completionDate) {
-            this.completionDate = completionDate;
-        }
-
-        public String getNewCardNumber() {
-            return newCardNumber;
-        }
-
-        public void setNewCardNumber(String newCardNumber) {
-            this.newCardNumber = newCardNumber;
-        }
-
-        public String getNotes() {
-            return notes;
-        }
-
-        public void setNotes(String notes) {
-            this.notes = notes;
-        }
-    }
 }

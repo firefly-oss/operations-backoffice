@@ -15,6 +15,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.accountoperations.StandingOrderDTO;
+import com.vaadin.starter.business.backend.service.StandingOrderService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -23,18 +25,19 @@ import com.vaadin.starter.business.ui.layout.size.Top;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 
 @PageTitle(NavigationConstants.STANDING_ORDERS)
 @Route(value = "account-operations/standing-orders", layout = MainLayout.class)
 public class StandingOrders extends ViewFrame {
 
-    private Grid<StandingOrder> grid;
-    private ListDataProvider<StandingOrder> dataProvider;
+    private Grid<StandingOrderDTO> grid;
+    private ListDataProvider<StandingOrderDTO> dataProvider;
 
     // Filter form fields
     private TextField orderIdFilter;
@@ -45,7 +48,11 @@ public class StandingOrders extends ViewFrame {
     private DatePicker nextExecutionDateToFilter;
     private ComboBox<String> frequencyFilter;
 
-    public StandingOrders() {
+    private final StandingOrderService standingOrderService;
+
+    @Autowired
+    public StandingOrders(StandingOrderService standingOrderService) {
+        this.standingOrderService = standingOrderService;
         setViewContent(createContent());
     }
 
@@ -124,11 +131,11 @@ public class StandingOrders extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<StandingOrder> createGrid() {
+    private Grid<StandingOrderDTO> createGrid() {
         grid = new Grid<>();
 
-        // Initialize with dummy data
-        Collection<StandingOrder> orders = getDummyStandingOrders();
+        // Initialize with data from service
+        Collection<StandingOrderDTO> orders = standingOrderService.getStandingOrders();
         dataProvider = new ListDataProvider<>(orders);
         grid.setDataProvider(dataProvider);
 
@@ -136,36 +143,36 @@ public class StandingOrders extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(StandingOrder::getOrderId)
+        grid.addColumn(StandingOrderDTO::getOrderId)
                 .setHeader("Order ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(StandingOrder::getAccountNumber)
+        grid.addColumn(StandingOrderDTO::getAccountNumber)
                 .setHeader("Account Number")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(StandingOrder::getBeneficiary)
+        grid.addColumn(StandingOrderDTO::getBeneficiary)
                 .setHeader("Beneficiary")
                 .setSortable(true)
                 .setWidth("200px");
-        grid.addColumn(StandingOrder::getBeneficiaryAccount)
+        grid.addColumn(StandingOrderDTO::getBeneficiaryAccount)
                 .setHeader("Beneficiary Account")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(StandingOrder::getAmount)
+        grid.addColumn(StandingOrderDTO::getAmount)
                 .setHeader("Amount")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(StandingOrder::getFrequency)
+        grid.addColumn(StandingOrderDTO::getFrequency)
                 .setHeader("Frequency")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(new LocalDateRenderer<>(StandingOrder::getNextExecutionDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(StandingOrderDTO::getNextExecutionDate, "MMM dd, YYYY"))
                 .setHeader("Next Execution")
                 .setSortable(true)
-                .setComparator(StandingOrder::getNextExecutionDate)
+                .setComparator(StandingOrderDTO::getNextExecutionDate)
                 .setWidth("150px");
-        grid.addColumn(StandingOrder::getStatus)
+        grid.addColumn(StandingOrderDTO::getStatus)
                 .setHeader("Status")
                 .setSortable(true)
                 .setWidth("120px");
@@ -186,11 +193,12 @@ public class StandingOrders extends ViewFrame {
             if (!order.getStatus().equals("Cancelled")) {
                 suspendButton.addClickListener(e -> {
                     if (order.getStatus().equals("Active")) {
-                        order.setStatus("Suspended");
+                        standingOrderService.suspendStandingOrder(order.getOrderId());
+                        refreshGrid();
                     } else if (order.getStatus().equals("Suspended")) {
-                        order.setStatus("Active");
+                        standingOrderService.activateStandingOrder(order.getOrderId());
+                        refreshGrid();
                     }
-                    grid.getDataProvider().refreshItem(order);
                 });
                 actions.add(editButton, suspendButton);
             } else {
@@ -277,109 +285,12 @@ public class StandingOrders extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<StandingOrder> getDummyStandingOrders() {
-        List<StandingOrder> orders = new ArrayList<>();
-
-        orders.add(new StandingOrder("SO001", "ACC001", "John Smith", "BENACC001", 500.0, "Monthly", LocalDate.now().plusDays(5), "Active"));
-        orders.add(new StandingOrder("SO002", "ACC002", "Utility Company", "BENACC002", 150.0, "Monthly", LocalDate.now().plusDays(10), "Active"));
-        orders.add(new StandingOrder("SO003", "ACC003", "Insurance Ltd", "BENACC003", 75.0, "Monthly", LocalDate.now().plusDays(15), "Active"));
-        orders.add(new StandingOrder("SO004", "ACC004", "Mortgage Bank", "BENACC004", 1200.0, "Monthly", LocalDate.now().plusDays(20), "Active"));
-        orders.add(new StandingOrder("SO005", "ACC005", "Charity Foundation", "BENACC005", 50.0, "Monthly", LocalDate.now().plusDays(25), "Active"));
-        orders.add(new StandingOrder("SO006", "ACC006", "Gym Membership", "BENACC006", 45.0, "Monthly", LocalDate.now().plusDays(7), "Suspended"));
-        orders.add(new StandingOrder("SO007", "ACC007", "Savings Account", "BENACC007", 200.0, "Monthly", LocalDate.now().plusDays(12), "Active"));
-        orders.add(new StandingOrder("SO008", "ACC008", "Investment Fund", "BENACC008", 300.0, "Monthly", LocalDate.now().plusDays(18), "Active"));
-        orders.add(new StandingOrder("SO009", "ACC009", "Child Support", "BENACC009", 350.0, "Monthly", LocalDate.now().plusDays(22), "Active"));
-        orders.add(new StandingOrder("SO010", "ACC010", "Old Subscription", "BENACC010", 15.0, "Monthly", LocalDate.now().plusDays(30), "Cancelled"));
-
-        return orders;
+    private void refreshGrid() {
+        // Refresh data from service
+        Collection<StandingOrderDTO> orders = standingOrderService.getStandingOrders();
+        dataProvider = new ListDataProvider<>(orders);
+        grid.setDataProvider(dataProvider);
+        applyFilters(); // Re-apply any active filters
     }
 
-    // Standing Order class for demonstration
-    public static class StandingOrder {
-        private String orderId;
-        private String accountNumber;
-        private String beneficiary;
-        private String beneficiaryAccount;
-        private Double amount;
-        private String frequency;
-        private LocalDate nextExecutionDate;
-        private String status;
-
-        public StandingOrder(String orderId, String accountNumber, String beneficiary, String beneficiaryAccount,
-                            Double amount, String frequency, LocalDate nextExecutionDate, String status) {
-            this.orderId = orderId;
-            this.accountNumber = accountNumber;
-            this.beneficiary = beneficiary;
-            this.beneficiaryAccount = beneficiaryAccount;
-            this.amount = amount;
-            this.frequency = frequency;
-            this.nextExecutionDate = nextExecutionDate;
-            this.status = status;
-        }
-
-        public String getOrderId() {
-            return orderId;
-        }
-
-        public void setOrderId(String orderId) {
-            this.orderId = orderId;
-        }
-
-        public String getAccountNumber() {
-            return accountNumber;
-        }
-
-        public void setAccountNumber(String accountNumber) {
-            this.accountNumber = accountNumber;
-        }
-
-        public String getBeneficiary() {
-            return beneficiary;
-        }
-
-        public void setBeneficiary(String beneficiary) {
-            this.beneficiary = beneficiary;
-        }
-
-        public String getBeneficiaryAccount() {
-            return beneficiaryAccount;
-        }
-
-        public void setBeneficiaryAccount(String beneficiaryAccount) {
-            this.beneficiaryAccount = beneficiaryAccount;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public String getFrequency() {
-            return frequency;
-        }
-
-        public void setFrequency(String frequency) {
-            this.frequency = frequency;
-        }
-
-        public LocalDate getNextExecutionDate() {
-            return nextExecutionDate;
-        }
-
-        public void setNextExecutionDate(LocalDate nextExecutionDate) {
-            this.nextExecutionDate = nextExecutionDate;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-    }
 }

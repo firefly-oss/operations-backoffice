@@ -15,6 +15,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.accountoperations.DirectDebitDTO;
+import com.vaadin.starter.business.backend.service.DirectDebitService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -23,6 +25,7 @@ import com.vaadin.starter.business.ui.layout.size.Top;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -33,8 +36,8 @@ import java.util.List;
 @Route(value = "account-operations/direct-debits", layout = MainLayout.class)
 public class DirectDebits extends ViewFrame {
 
-    private Grid<DirectDebit> grid;
-    private ListDataProvider<DirectDebit> dataProvider;
+    private Grid<DirectDebitDTO> grid;
+    private ListDataProvider<DirectDebitDTO> dataProvider;
 
     // Filter form fields
     private TextField mandateIdFilter;
@@ -45,7 +48,11 @@ public class DirectDebits extends ViewFrame {
     private DatePicker nextCollectionDateToFilter;
     private ComboBox<String> frequencyFilter;
 
-    public DirectDebits() {
+    private final DirectDebitService directDebitService;
+
+    @Autowired
+    public DirectDebits(DirectDebitService directDebitService) {
+        this.directDebitService = directDebitService;
         setViewContent(createContent());
     }
 
@@ -124,11 +131,11 @@ public class DirectDebits extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<DirectDebit> createGrid() {
+    private Grid<DirectDebitDTO> createGrid() {
         grid = new Grid<>();
-        
-        // Initialize with dummy data
-        Collection<DirectDebit> debits = getDummyDirectDebits();
+
+        // Initialize with data from service
+        Collection<DirectDebitDTO> debits = directDebitService.getDirectDebits();
         dataProvider = new ListDataProvider<>(debits);
         grid.setDataProvider(dataProvider);
 
@@ -136,36 +143,36 @@ public class DirectDebits extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(DirectDebit::getMandateId)
+        grid.addColumn(DirectDebitDTO::getMandateId)
                 .setHeader("Mandate ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(DirectDebit::getAccountNumber)
+        grid.addColumn(DirectDebitDTO::getAccountNumber)
                 .setHeader("Account Number")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(DirectDebit::getCreditor)
+        grid.addColumn(DirectDebitDTO::getCreditor)
                 .setHeader("Creditor")
                 .setSortable(true)
                 .setWidth("200px");
-        grid.addColumn(DirectDebit::getCreditorId)
+        grid.addColumn(DirectDebitDTO::getCreditorId)
                 .setHeader("Creditor ID")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(DirectDebit::getAmount)
+        grid.addColumn(DirectDebitDTO::getAmount)
                 .setHeader("Amount")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(DirectDebit::getFrequency)
+        grid.addColumn(DirectDebitDTO::getFrequency)
                 .setHeader("Frequency")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(new LocalDateRenderer<>(DirectDebit::getNextCollectionDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(DirectDebitDTO::getNextCollectionDate, "MMM dd, YYYY"))
                 .setHeader("Next Collection")
                 .setSortable(true)
-                .setComparator(DirectDebit::getNextCollectionDate)
+                .setComparator(DirectDebitDTO::getNextCollectionDate)
                 .setWidth("150px");
-        grid.addColumn(DirectDebit::getStatus)
+        grid.addColumn(DirectDebitDTO::getStatus)
                 .setHeader("Status")
                 .setSortable(true)
                 .setWidth("120px");
@@ -173,30 +180,31 @@ public class DirectDebits extends ViewFrame {
         // Add action buttons
         grid.addComponentColumn(debit -> {
             HorizontalLayout actions = new HorizontalLayout();
-            
+
             Button editButton = UIUtils.createSmallButton("Edit");
             editButton.addClickListener(e -> {
                 // Edit logic would go here
             });
-            
+
             Button suspendButton = UIUtils.createSmallButton(
                     debit.getStatus().equals("Active") ? "Suspend" : 
                     debit.getStatus().equals("Suspended") ? "Activate" : "");
-            
+
             if (!debit.getStatus().equals("Cancelled")) {
                 suspendButton.addClickListener(e -> {
                     if (debit.getStatus().equals("Active")) {
-                        debit.setStatus("Suspended");
+                        directDebitService.suspendDirectDebit(debit.getMandateId());
+                        refreshGrid();
                     } else if (debit.getStatus().equals("Suspended")) {
-                        debit.setStatus("Active");
+                        directDebitService.activateDirectDebit(debit.getMandateId());
+                        refreshGrid();
                     }
-                    grid.getDataProvider().refreshItem(debit);
                 });
                 actions.add(editButton, suspendButton);
             } else {
                 actions.add(editButton);
             }
-            
+
             return actions;
         }).setHeader("Actions").setWidth("200px");
 
@@ -277,109 +285,12 @@ public class DirectDebits extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<DirectDebit> getDummyDirectDebits() {
-        List<DirectDebit> debits = new ArrayList<>();
-        
-        debits.add(new DirectDebit("DD001", "ACC001", "Electric Company", "CRED001", 85.0, "Monthly", LocalDate.now().plusDays(5), "Active"));
-        debits.add(new DirectDebit("DD002", "ACC002", "Water Utility", "CRED002", 45.0, "Monthly", LocalDate.now().plusDays(10), "Active"));
-        debits.add(new DirectDebit("DD003", "ACC003", "Internet Provider", "CRED003", 60.0, "Monthly", LocalDate.now().plusDays(15), "Active"));
-        debits.add(new DirectDebit("DD004", "ACC004", "Mobile Phone", "CRED004", 35.0, "Monthly", LocalDate.now().plusDays(20), "Active"));
-        debits.add(new DirectDebit("DD005", "ACC005", "Gym Membership", "CRED005", 50.0, "Monthly", LocalDate.now().plusDays(25), "Active"));
-        debits.add(new DirectDebit("DD006", "ACC006", "Magazine Subscription", "CRED006", 15.0, "Monthly", LocalDate.now().plusDays(7), "Suspended"));
-        debits.add(new DirectDebit("DD007", "ACC007", "Charity Donation", "CRED007", 20.0, "Monthly", LocalDate.now().plusDays(12), "Active"));
-        debits.add(new DirectDebit("DD008", "ACC008", "Insurance Premium", "CRED008", 75.0, "Monthly", LocalDate.now().plusDays(18), "Active"));
-        debits.add(new DirectDebit("DD009", "ACC009", "TV License", "CRED009", 13.0, "Monthly", LocalDate.now().plusDays(22), "Active"));
-        debits.add(new DirectDebit("DD010", "ACC010", "Old Service", "CRED010", 25.0, "Monthly", LocalDate.now().plusDays(30), "Cancelled"));
-        
-        return debits;
+    private void refreshGrid() {
+        // Refresh data from service
+        Collection<DirectDebitDTO> debits = directDebitService.getDirectDebits();
+        dataProvider = new ListDataProvider<>(debits);
+        grid.setDataProvider(dataProvider);
+        applyFilters(); // Re-apply any active filters
     }
 
-    // Direct Debit class for demonstration
-    public static class DirectDebit {
-        private String mandateId;
-        private String accountNumber;
-        private String creditor;
-        private String creditorId;
-        private Double amount;
-        private String frequency;
-        private LocalDate nextCollectionDate;
-        private String status;
-
-        public DirectDebit(String mandateId, String accountNumber, String creditor, String creditorId,
-                          Double amount, String frequency, LocalDate nextCollectionDate, String status) {
-            this.mandateId = mandateId;
-            this.accountNumber = accountNumber;
-            this.creditor = creditor;
-            this.creditorId = creditorId;
-            this.amount = amount;
-            this.frequency = frequency;
-            this.nextCollectionDate = nextCollectionDate;
-            this.status = status;
-        }
-
-        public String getMandateId() {
-            return mandateId;
-        }
-
-        public void setMandateId(String mandateId) {
-            this.mandateId = mandateId;
-        }
-
-        public String getAccountNumber() {
-            return accountNumber;
-        }
-
-        public void setAccountNumber(String accountNumber) {
-            this.accountNumber = accountNumber;
-        }
-
-        public String getCreditor() {
-            return creditor;
-        }
-
-        public void setCreditor(String creditor) {
-            this.creditor = creditor;
-        }
-
-        public String getCreditorId() {
-            return creditorId;
-        }
-
-        public void setCreditorId(String creditorId) {
-            this.creditorId = creditorId;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public String getFrequency() {
-            return frequency;
-        }
-
-        public void setFrequency(String frequency) {
-            this.frequency = frequency;
-        }
-
-        public LocalDate getNextCollectionDate() {
-            return nextCollectionDate;
-        }
-
-        public void setNextCollectionDate(LocalDate nextCollectionDate) {
-            this.nextCollectionDate = nextCollectionDate;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-    }
 }
