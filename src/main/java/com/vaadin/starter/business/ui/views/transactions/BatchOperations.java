@@ -13,6 +13,8 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.transactions.BatchJobDTO;
+import com.vaadin.starter.business.backend.service.TransactionOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -29,6 +31,7 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,7 +45,11 @@ public class BatchOperations extends ViewFrame {
     private static final String CLASS_NAME = "batch-operations";
     public static final String MAX_WIDTH = "1024px";
 
-    public BatchOperations() {
+    private final TransactionOperationsService transactionOperationsService;
+
+    @Autowired
+    public BatchOperations(TransactionOperationsService transactionOperationsService) {
+        this.transactionOperationsService = transactionOperationsService;
         setViewContent(createContent());
     }
 
@@ -145,7 +152,7 @@ public class BatchOperations extends ViewFrame {
 
         ListSeries currentSeries = new ListSeries("Current Week");
         currentSeries.setData(12, 18, 25, 8, 35);
-        
+
         ListSeries previousSeries = new ListSeries("Previous Week");
         previousSeries.setData(15, 20, 28, 10, 40);
 
@@ -176,19 +183,19 @@ public class BatchOperations extends ViewFrame {
     }
 
     private Component createRecentBatchesGrid() {
-        Grid<BatchJob> grid = new Grid<>();
+        Grid<BatchJobDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeight("300px");
 
-        grid.addColumn(BatchJob::getId).setHeader("ID").setWidth("80px");
-        grid.addColumn(BatchJob::getName).setHeader("Batch Name").setWidth("200px");
-        grid.addColumn(BatchJob::getStartTime).setHeader("Start Time").setWidth("150px");
-        grid.addColumn(BatchJob::getEndTime).setHeader("End Time").setWidth("150px");
-        grid.addColumn(BatchJob::getDuration).setHeader("Duration").setWidth("100px");
-        grid.addColumn(BatchJob::getRecords).setHeader("Records").setWidth("100px");
-        grid.addColumn(BatchJob::getStatus).setHeader("Status").setWidth("120px");
+        grid.addColumn(BatchJobDTO::getId).setHeader("ID").setWidth("80px");
+        grid.addColumn(BatchJobDTO::getName).setHeader("Batch Name").setWidth("200px");
+        grid.addColumn(BatchJobDTO::getStartTime).setHeader("Start Time").setWidth("150px");
+        grid.addColumn(BatchJobDTO::getEndTime).setHeader("End Time").setWidth("150px");
+        grid.addColumn(BatchJobDTO::getDuration).setHeader("Duration").setWidth("100px");
+        grid.addColumn(BatchJobDTO::getRecords).setHeader("Records").setWidth("100px");
+        grid.addColumn(BatchJobDTO::getStatus).setHeader("Status").setWidth("120px");
 
-        List<BatchJob> batchJobs = createMockBatchJobs();
+        List<BatchJobDTO> batchJobs = transactionOperationsService.getBatchJobs();
         grid.setItems(batchJobs);
 
         FlexBoxLayout card = new FlexBoxLayout(grid);
@@ -200,111 +207,4 @@ public class BatchOperations extends ViewFrame {
         return card;
     }
 
-    private List<BatchJob> createMockBatchJobs() {
-        List<BatchJob> batchJobs = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        
-        batchJobs.add(new BatchJob(
-                "B1001",
-                "End of Day Processing",
-                now.minusHours(2).format(formatter),
-                now.minusHours(1).format(formatter),
-                "58:24",
-                "12,450",
-                "Completed"
-        ));
-        
-        batchJobs.add(new BatchJob(
-                "B1002",
-                "Payment Batch",
-                now.minusHours(5).format(formatter),
-                now.minusHours(4).minusMinutes(48).format(formatter),
-                "12:15",
-                "3,245",
-                "Completed"
-        ));
-        
-        batchJobs.add(new BatchJob(
-                "B1003",
-                "Statement Generation",
-                now.minusHours(8).format(formatter),
-                now.minusHours(7).minusMinutes(42).format(formatter),
-                "18:32",
-                "5,678",
-                "Completed"
-        ));
-        
-        batchJobs.add(new BatchJob(
-                "B1004",
-                "Interest Calculation",
-                now.minusHours(10).format(formatter),
-                now.minusHours(9).minusMinutes(35).format(formatter),
-                "25:12",
-                "8,912",
-                "Completed"
-        ));
-        
-        batchJobs.add(new BatchJob(
-                "B1005",
-                "Fee Processing",
-                now.minusHours(12).format(formatter),
-                now.minusHours(11).minusMinutes(52).format(formatter),
-                "8:05",
-                "2,345",
-                "Completed"
-        ));
-        
-        return batchJobs;
-    }
-
-    // Data class for batch jobs
-    public static class BatchJob {
-        private String id;
-        private String name;
-        private String startTime;
-        private String endTime;
-        private String duration;
-        private String records;
-        private String status;
-
-        public BatchJob(String id, String name, String startTime, String endTime, 
-                       String duration, String records, String status) {
-            this.id = id;
-            this.name = name;
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.duration = duration;
-            this.records = records;
-            this.status = status;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getStartTime() {
-            return startTime;
-        }
-
-        public String getEndTime() {
-            return endTime;
-        }
-
-        public String getDuration() {
-            return duration;
-        }
-
-        public String getRecords() {
-            return records;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-    }
 }

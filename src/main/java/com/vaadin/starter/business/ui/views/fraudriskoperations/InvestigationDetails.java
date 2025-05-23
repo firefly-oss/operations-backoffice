@@ -13,6 +13,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.InvestigationDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.components.ListItem;
@@ -25,12 +27,15 @@ import com.vaadin.starter.business.ui.util.BoxShadowBorders;
 import com.vaadin.starter.business.ui.util.LumoStyles;
 import com.vaadin.starter.business.ui.util.css.WhiteSpace;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
 
 @PageTitle("Investigation Details")
 @Route(value = "fraud-risk/investigation-details", layout = MainLayout.class)
 public class InvestigationDetails extends ViewFrame implements HasUrlParameter<String> {
+
+    private final FraudRiskOperationsService fraudRiskOperationsService;
 
     private ListItem caseId;
     private ListItem subject;
@@ -44,12 +49,36 @@ public class InvestigationDetails extends ViewFrame implements HasUrlParameter<S
 
     private Investigations.Investigation investigation;
 
+    @Autowired
+    public InvestigationDetails(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
+    }
+
     @Override
     public void setParameter(BeforeEvent beforeEvent, String caseId) {
-        // In a real application, this would fetch the investigation from a service
-        // For this example, we'll create a mock investigation
-        investigation = createMockInvestigation(caseId);
-        setViewContent(createContent());
+        // Fetch the investigation from the service
+        InvestigationDTO investigationDTO = fraudRiskOperationsService.getInvestigationById(caseId);
+        if (investigationDTO != null) {
+            investigation = convertToViewModel(investigationDTO);
+            setViewContent(createContent());
+        } else {
+            // Handle investigation not found
+            UI.getCurrent().navigate("fraud-risk/investigations");
+        }
+    }
+
+    private Investigations.Investigation convertToViewModel(InvestigationDTO dto) {
+        Investigations.Investigation investigation = new Investigations.Investigation();
+        investigation.setCaseId(dto.getCaseId());
+        investigation.setSubject(dto.getSubject());
+        investigation.setType(dto.getType());
+        investigation.setStatus(dto.getStatus());
+        investigation.setPriority(dto.getPriority());
+        investigation.setAssignedTo(dto.getAssignedTo());
+        investigation.setOpenedDate(dto.getOpenedDate());
+        investigation.setLastUpdated(dto.getLastUpdated());
+        investigation.setDescription(dto.getDescription());
+        return investigation;
     }
 
     private Component createContent() {
@@ -119,15 +148,15 @@ public class InvestigationDetails extends ViewFrame implements HasUrlParameter<S
         status.setPrimaryText(investigation.getStatus());
         priority.setPrimaryText(investigation.getPriority());
         assignedTo.setPrimaryText(investigation.getAssignedTo());
-        
+
         if (investigation.getOpenedDate() != null) {
             openedDate.setPrimaryText(investigation.getOpenedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         }
-        
+
         if (investigation.getLastUpdated() != null) {
             lastUpdated.setPrimaryText(investigation.getLastUpdated().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         }
-        
+
         description.setPrimaryText(investigation.getDescription());
 
         FlexBoxLayout listItems = new FlexBoxLayout(
@@ -212,17 +241,4 @@ public class InvestigationDetails extends ViewFrame implements HasUrlParameter<S
         return appBar;
     }
 
-    private Investigations.Investigation createMockInvestigation(String caseId) {
-        Investigations.Investigation investigation = new Investigations.Investigation();
-        investigation.setCaseId(caseId);
-        investigation.setSubject("Suspicious transaction pattern detected");
-        investigation.setType("Fraud");
-        investigation.setStatus("In Progress");
-        investigation.setPriority("High");
-        investigation.setAssignedTo("John Smith");
-        investigation.setOpenedDate(java.time.LocalDateTime.now().minusDays(5));
-        investigation.setLastUpdated(java.time.LocalDateTime.now().minusHours(12));
-        investigation.setDescription("Investigation into suspicious transaction patterns across multiple accounts. Customer made several large transfers to offshore accounts within a short timeframe.");
-        return investigation;
-    }
 }

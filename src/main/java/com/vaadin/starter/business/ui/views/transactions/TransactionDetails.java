@@ -14,8 +14,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.starter.business.backend.Transaction;
-import com.vaadin.starter.business.backend.service.TransactionService;
+import com.vaadin.starter.business.backend.dto.transactions.TransactionDetailsDTO;
+import com.vaadin.starter.business.backend.service.TransactionOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.components.ListItem;
@@ -47,17 +47,17 @@ public class TransactionDetails extends ViewFrame implements HasUrlParameter<Str
     private ListItem timestamp;
     private ListItem description;
 
-    private Transaction transaction;
-    private final TransactionService transactionService;
+    private TransactionDetailsDTO transaction;
+    private final TransactionOperationsService transactionOperationsService;
 
     @Autowired
-    public TransactionDetails(TransactionService transactionService) {
-        this.transactionService = transactionService;
+    public TransactionDetails(TransactionOperationsService transactionOperationsService) {
+        this.transactionOperationsService = transactionOperationsService;
     }
 
     @Override
     public void setParameter(BeforeEvent beforeEvent, String id) {
-        transaction = transactionService.getTransactionById(id);
+        transaction = transactionOperationsService.getTransactionDetails(id);
         setViewContent(createContent());
     }
 
@@ -191,6 +191,17 @@ public class TransactionDetails extends ViewFrame implements HasUrlParameter<Str
         timestamp.setPrimaryText(transaction.getTimestamp().format(formatter));
 
         description.setPrimaryText(transaction.getDescription());
+
+        // If there are events or notes, we could display them here
+        if (transaction.getEvents() != null && !transaction.getEvents().isEmpty()) {
+            // Example: Add events to the UI
+            // This would require additional UI components
+        }
+
+        if (transaction.getNotes() != null && !transaction.getNotes().isEmpty()) {
+            // Example: Add notes to the UI
+            // This would require additional UI components
+        }
     }
 
     private AppBar initAppBar() {

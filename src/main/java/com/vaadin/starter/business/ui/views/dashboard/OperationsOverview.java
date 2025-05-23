@@ -11,6 +11,9 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.dashboard.OperationalMetricDTO;
+import com.vaadin.starter.business.backend.dto.dashboard.SystemStatusDTO;
+import com.vaadin.starter.business.backend.service.DashboardService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -27,6 +30,9 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 @PageTitle(NavigationConstants.OPERATIONS_OVERVIEW)
 @Route(value = "dashboard/operations-overview", layout = MainLayout.class)

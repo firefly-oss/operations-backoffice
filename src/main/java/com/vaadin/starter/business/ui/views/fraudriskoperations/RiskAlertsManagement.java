@@ -16,6 +16,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.RiskAlertDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -24,6 +26,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +39,7 @@ import java.util.Random;
 @Route(value = "fraud-risk/risk-alerts", layout = MainLayout.class)
 public class RiskAlertsManagement extends ViewFrame {
 
+    private final FraudRiskOperationsService fraudRiskOperationsService;
     private Grid<RiskAlert> grid;
     private ListDataProvider<RiskAlert> dataProvider;
 
@@ -50,7 +54,9 @@ public class RiskAlertsManagement extends ViewFrame {
     private DatePicker generatedDateToFilter;
     private TextField assignedToFilter;
 
-    public RiskAlertsManagement() {
+    @Autowired
+    public RiskAlertsManagement(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
         setViewContent(createContent());
     }
 
@@ -154,8 +160,8 @@ public class RiskAlertsManagement extends ViewFrame {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
-        // Initialize data provider with mock data
-        Collection<RiskAlert> alerts = generateMockData();
+        // Initialize data provider with data from service
+        Collection<RiskAlert> alerts = getRiskAlertsFromService();
         dataProvider = new ListDataProvider<>(alerts);
         grid.setDataProvider(dataProvider);
 
@@ -404,86 +410,29 @@ public class RiskAlertsManagement extends ViewFrame {
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<RiskAlert> generateMockData() {
-        List<RiskAlert> alerts = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
+    private Collection<RiskAlert> getRiskAlertsFromService() {
+        // Get risk alerts from the service
+        Collection<RiskAlertDTO> alertDTOs = fraudRiskOperationsService.getRiskAlerts();
 
-        String[] alertTypes = getAlertTypes();
-        String[] severities = getSeverities();
-        String[] statuses = getStatuses();
-        String[] entityTypes = getEntityTypes();
+        // Convert DTOs to view model objects
+        return alertDTOs.stream()
+                .map(this::convertToViewModel)
+                .collect(java.util.stream.Collectors.toList());
+    }
 
-        String[] entityIds = {"C10045", "A20056", "T30078", "E40023", "V50091", "S60112", "P70134"};
-        String[] entityNames = {
-            "John Smith", 
-            "Savings Account #12345", 
-            "Wire Transfer #78901", 
-            "Sarah Johnson", 
-            "Acme Suppliers Inc.",
-            "Core Banking System",
-            "Loan Approval Process"
-        };
-
-        String[] assignees = {
-            "John Smith", 
-            "Maria Rodriguez", 
-            "Wei Zhang", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
-
-        String[] descriptions = {
-            "Unusual pattern of transactions detected for this customer",
-            "Account balance dropped below regulatory threshold",
-            "Multiple high-value transactions in short time period",
-            "Employee accessed customer data outside business hours",
-            "Vendor risk score increased due to recent compliance issues",
-            "System vulnerability detected in security scan",
-            "Process exception rate exceeded threshold",
-            "Multiple failed authentication attempts detected"
-        };
-
-        for (int i = 1; i <= 75; i++) {
-            RiskAlert alert = new RiskAlert();
-            alert.setAlertId("RISK" + String.format("%06d", i));
-
-            String alertType = alertTypes[random.nextInt(alertTypes.length)];
-            alert.setAlertType(alertType);
-
-            // Assign severity with some weighting toward medium
-            int severityRoll = random.nextInt(10);
-            if (severityRoll < 1) {
-                alert.setSeverity("Critical");
-            } else if (severityRoll < 4) {
-                alert.setSeverity("High");
-            } else if (severityRoll < 8) {
-                alert.setSeverity("Medium");
-            } else {
-                alert.setSeverity("Low");
-            }
-
-            alert.setStatus(statuses[random.nextInt(statuses.length)]);
-
-            int entityIndex = random.nextInt(entityIds.length);
-            alert.setEntityId(entityIds[entityIndex]);
-            alert.setEntityName(entityNames[entityIndex]);
-            alert.setEntityType(entityTypes[entityIndex % entityTypes.length]);
-
-            // Generate a random generated date within the last 30 days
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime generatedDate = now.minusDays(random.nextInt(30)).minusHours(random.nextInt(24));
-            alert.setGeneratedDate(generatedDate);
-
-            alert.setAssignedTo(assignees[random.nextInt(assignees.length)]);
-            alert.setDescription(descriptions[random.nextInt(descriptions.length)]);
-
-            alerts.add(alert);
-        }
-
-        return alerts;
+    private RiskAlert convertToViewModel(RiskAlertDTO dto) {
+        RiskAlert alert = new RiskAlert();
+        alert.setAlertId(dto.getAlertId());
+        alert.setAlertType(dto.getAlertType());
+        alert.setSeverity(dto.getSeverity());
+        alert.setStatus(dto.getStatus());
+        alert.setEntityId(dto.getEntityId());
+        alert.setEntityName(dto.getEntityName());
+        alert.setEntityType(dto.getEntityType());
+        alert.setGeneratedDate(dto.getGeneratedDate());
+        alert.setAssignedTo(dto.getAssignedTo());
+        alert.setDescription(dto.getDescription());
+        return alert;
     }
 
     // Inner class to represent a risk alert

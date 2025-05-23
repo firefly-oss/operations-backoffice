@@ -13,6 +13,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.RiskAlertDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.components.ListItem;
@@ -25,12 +27,15 @@ import com.vaadin.starter.business.ui.util.BoxShadowBorders;
 import com.vaadin.starter.business.ui.util.LumoStyles;
 import com.vaadin.starter.business.ui.util.css.WhiteSpace;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
 
 @PageTitle("Risk Alert Details")
 @Route(value = "fraud-risk/risk-alert-details", layout = MainLayout.class)
 public class RiskAlertDetails extends ViewFrame implements HasUrlParameter<String> {
+
+    private final FraudRiskOperationsService fraudRiskOperationsService;
 
     private ListItem alertId;
     private ListItem alertType;
@@ -45,12 +50,37 @@ public class RiskAlertDetails extends ViewFrame implements HasUrlParameter<Strin
 
     private RiskAlertsManagement.RiskAlert riskAlert;
 
+    @Autowired
+    public RiskAlertDetails(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
+    }
+
     @Override
     public void setParameter(BeforeEvent beforeEvent, String alertId) {
-        // In a real application, this would fetch the risk alert from a service
-        // For this example, we'll create a mock alert
-        riskAlert = createMockRiskAlert(alertId);
-        setViewContent(createContent());
+        // Fetch the risk alert from the service
+        RiskAlertDTO alertDTO = fraudRiskOperationsService.getRiskAlertById(alertId);
+        if (alertDTO != null) {
+            riskAlert = convertToViewModel(alertDTO);
+            setViewContent(createContent());
+        } else {
+            // Handle alert not found
+            UI.getCurrent().navigate("fraud-risk/risk-alerts");
+        }
+    }
+
+    private RiskAlertsManagement.RiskAlert convertToViewModel(RiskAlertDTO dto) {
+        RiskAlertsManagement.RiskAlert alert = new RiskAlertsManagement.RiskAlert();
+        alert.setAlertId(dto.getAlertId());
+        alert.setAlertType(dto.getAlertType());
+        alert.setSeverity(dto.getSeverity());
+        alert.setStatus(dto.getStatus());
+        alert.setEntityId(dto.getEntityId());
+        alert.setEntityName(dto.getEntityName());
+        alert.setEntityType(dto.getEntityType());
+        alert.setGeneratedDate(dto.getGeneratedDate());
+        alert.setAssignedTo(dto.getAssignedTo());
+        alert.setDescription(dto.getDescription());
+        return alert;
     }
 
     private Component createContent() {
@@ -126,11 +156,11 @@ public class RiskAlertDetails extends ViewFrame implements HasUrlParameter<Strin
         entityId.setPrimaryText(riskAlert.getEntityId());
         entityName.setPrimaryText(riskAlert.getEntityName());
         entityType.setPrimaryText(riskAlert.getEntityType());
-        
+
         if (riskAlert.getGeneratedDate() != null) {
             generatedDate.setPrimaryText(riskAlert.getGeneratedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         }
-        
+
         assignedTo.setPrimaryText(riskAlert.getAssignedTo());
         description.setPrimaryText(riskAlert.getDescription());
 
@@ -217,18 +247,4 @@ public class RiskAlertDetails extends ViewFrame implements HasUrlParameter<Strin
         return appBar;
     }
 
-    private RiskAlertsManagement.RiskAlert createMockRiskAlert(String alertId) {
-        RiskAlertsManagement.RiskAlert alert = new RiskAlertsManagement.RiskAlert();
-        alert.setAlertId(alertId);
-        alert.setAlertType("Operational Risk");
-        alert.setSeverity("High");
-        alert.setStatus("In Progress");
-        alert.setEntityId("C10045");
-        alert.setEntityName("John Smith");
-        alert.setEntityType("Customer");
-        alert.setGeneratedDate(java.time.LocalDateTime.now().minusDays(3));
-        alert.setAssignedTo("Sarah Johnson");
-        alert.setDescription("Unusual pattern of transactions detected for this customer. Multiple high-value transactions in short time period. Potential money laundering risk.");
-        return alert;
-    }
 }

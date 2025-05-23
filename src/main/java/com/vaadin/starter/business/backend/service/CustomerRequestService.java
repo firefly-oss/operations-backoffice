@@ -1,8 +1,8 @@
 package com.vaadin.starter.business.backend.service;
 
-import com.vaadin.starter.business.backend.CustomerRequest;
+import com.vaadin.starter.business.backend.dto.customerservice.CustomerRequestDTO;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Service interface for managing customer requests.
@@ -12,9 +12,9 @@ public interface CustomerRequestService {
     /**
      * Get all customer requests.
      *
-     * @return List of all customer requests
+     * @return Collection of all customer requests
      */
-    List<CustomerRequest> getCustomerRequests();
+    Collection<CustomerRequestDTO> getCustomerRequests();
 
     /**
      * Get a customer request by ID.
@@ -22,5 +22,5 @@ public interface CustomerRequestService {
      * @param id Customer request ID
      * @return Customer request with the given ID, or null if not found
      */
-    CustomerRequest getCustomerRequestById(String id);
+    CustomerRequestDTO getCustomerRequestById(String id);
 }

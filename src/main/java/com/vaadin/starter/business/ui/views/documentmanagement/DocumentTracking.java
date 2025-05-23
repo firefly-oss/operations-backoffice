@@ -19,6 +19,9 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.documentmanagement.DocumentTrackingEntryDTO;
+import com.vaadin.starter.business.backend.mapper.DocumentTrackingEntryMapper;
+import com.vaadin.starter.business.backend.service.DocumentService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle(NavigationConstants.DOCUMENT_TRACKING)
 @Route(value = "document-management/document-tracking", layout = MainLayout.class)
@@ -42,7 +46,13 @@ public class DocumentTracking extends ViewFrame {
     private Grid<DocumentTrackingEntry> grid;
     private ListDataProvider<DocumentTrackingEntry> dataProvider;
 
-    public DocumentTracking() {
+    private final DocumentService documentService;
+    private final DocumentTrackingEntryMapper documentTrackingEntryMapper;
+
+    @Autowired
+    public DocumentTracking(DocumentService documentService, DocumentTrackingEntryMapper documentTrackingEntryMapper) {
+        this.documentService = documentService;
+        this.documentTrackingEntryMapper = documentTrackingEntryMapper;
         setViewContent(createContent());
     }
 
@@ -279,8 +289,9 @@ public class DocumentTracking extends ViewFrame {
     private Grid<DocumentTrackingEntry> createGrid() {
         grid = new Grid<>();
 
-        // Initialize data provider with mock data
-        Collection<DocumentTrackingEntry> entries = generateMockData();
+        // Initialize data provider with data from service
+        Collection<DocumentTrackingEntryDTO> entriesDTO = documentService.getDocumentTrackingEntries();
+        Collection<DocumentTrackingEntry> entries = documentTrackingEntryMapper.toEntityList(entriesDTO);
         dataProvider = new ListDataProvider<>(entries);
         grid.setDataProvider(dataProvider);
 

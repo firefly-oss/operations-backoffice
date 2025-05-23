@@ -18,6 +18,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.loanoperations.LoanApplicationDTO;
+import com.vaadin.starter.business.backend.service.LoanOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -30,6 +32,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,8 +43,16 @@ import java.util.List;
 @Route(value = "loan-operations/applications", layout = MainLayout.class)
 public class ApplicationProcessing extends ViewFrame {
 
-    private Grid<LoanApplication> grid;
-    private ListDataProvider<LoanApplication> dataProvider;
+    private Grid<LoanApplicationDTO> grid;
+    private ListDataProvider<LoanApplicationDTO> dataProvider;
+
+    private final LoanOperationsService loanOperationsService;
+
+    @Autowired
+    public ApplicationProcessing(LoanOperationsService loanOperationsService) {
+        this.loanOperationsService = loanOperationsService;
+        setViewContent(createContent());
+    }
 
     // Filter form fields
     private TextField applicationIdFilter;
@@ -54,9 +65,6 @@ public class ApplicationProcessing extends ViewFrame {
     private DatePicker applicationDateFromFilter;
     private DatePicker applicationDateToFilter;
 
-    public ApplicationProcessing() {
-        setViewContent(createContent());
-    }
 
     private Component createContent() {
         FlexBoxLayout content = new FlexBoxLayout(createFilterForm(), createGrid());
@@ -141,11 +149,11 @@ public class ApplicationProcessing extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<LoanApplication> createGrid() {
+    private Grid<LoanApplicationDTO> createGrid() {
         grid = new Grid<>();
 
-        // Initialize with dummy data
-        Collection<LoanApplication> applications = getDummyLoanApplications();
+        // Initialize with data from service
+        Collection<LoanApplicationDTO> applications = loanOperationsService.getLoanApplications();
         dataProvider = new ListDataProvider<>(applications);
         grid.setDataProvider(dataProvider);
 
@@ -153,36 +161,36 @@ public class ApplicationProcessing extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(LoanApplication::getApplicationId)
+        grid.addColumn(LoanApplicationDTO::getApplicationId)
                 .setHeader("Application ID")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(LoanApplication::getCustomerId)
+        grid.addColumn(LoanApplicationDTO::getCustomerId)
                 .setHeader("Customer ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(LoanApplication::getCustomerName)
+        grid.addColumn(LoanApplicationDTO::getCustomerName)
                 .setHeader("Customer Name")
                 .setSortable(true)
                 .setWidth("200px");
-        grid.addColumn(LoanApplication::getLoanType)
+        grid.addColumn(LoanApplicationDTO::getLoanType)
                 .setHeader("Loan Type")
                 .setSortable(true)
                 .setWidth("150px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(LoanApplication::getStatus)
+                .setComparator(LoanApplicationDTO::getStatus)
                 .setWidth("150px");
         grid.addColumn(new ComponentRenderer<>(this::createAmountComponent))
                 .setHeader("Amount ($)")
                 .setSortable(true)
-                .setComparator(LoanApplication::getAmount)
+                .setComparator(LoanApplicationDTO::getAmount)
                 .setWidth("120px");
-        grid.addColumn(new LocalDateRenderer<>(LoanApplication::getApplicationDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanApplicationDTO::getApplicationDate, "MMM dd, YYYY"))
                 .setHeader("Application Date")
                 .setSortable(true)
-                .setComparator(LoanApplication::getApplicationDate)
+                .setComparator(LoanApplicationDTO::getApplicationDate)
                 .setWidth("150px");
 
         // Add action buttons
@@ -210,7 +218,7 @@ public class ApplicationProcessing extends ViewFrame {
         return grid;
     }
 
-    private Component createStatusBadge(LoanApplication application) {
+    private Component createStatusBadge(LoanApplicationDTO application) {
         String status = application.getStatus();
         BadgeColor color;
 
@@ -234,7 +242,7 @@ public class ApplicationProcessing extends ViewFrame {
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Component createAmountComponent(LoanApplication application) {
+    private Component createAmountComponent(LoanApplicationDTO application) {
         Double amount = application.getAmount();
         Span amountSpan = new Span(UIUtils.formatAmount(amount));
         return amountSpan;
@@ -332,99 +340,4 @@ public class ApplicationProcessing extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<LoanApplication> getDummyLoanApplications() {
-        List<LoanApplication> applications = new ArrayList<>();
-
-        applications.add(new LoanApplication("LA001", "CUST001", "John Smith", "Personal", "Under Review", 25000.0, LocalDate.now().minusDays(5)));
-        applications.add(new LoanApplication("LA002", "CUST002", "Jane Doe", "Home", "Approved", 350000.0, LocalDate.now().minusDays(15)));
-        applications.add(new LoanApplication("LA003", "CUST003", "Robert Johnson", "Auto", "Pending Documentation", 45000.0, LocalDate.now().minusDays(3)));
-        applications.add(new LoanApplication("LA004", "CUST004", "Emily Wilson", "Education", "New", 75000.0, LocalDate.now().minusDays(1)));
-        applications.add(new LoanApplication("LA005", "CUST005", "Michael Brown", "Business", "Rejected", 150000.0, LocalDate.now().minusDays(10)));
-        applications.add(new LoanApplication("LA006", "CUST006", "Sarah Davis", "Personal", "Under Review", 15000.0, LocalDate.now().minusDays(7)));
-        applications.add(new LoanApplication("LA007", "CUST007", "David Miller", "Home", "Pending Documentation", 275000.0, LocalDate.now().minusDays(4)));
-        applications.add(new LoanApplication("LA008", "CUST008", "Jennifer Garcia", "Auto", "Approved", 35000.0, LocalDate.now().minusDays(20)));
-        applications.add(new LoanApplication("LA009", "CUST009", "James Rodriguez", "Business", "New", 200000.0, LocalDate.now()));
-        applications.add(new LoanApplication("LA010", "CUST010", "Lisa Martinez", "Education", "Under Review", 50000.0, LocalDate.now().minusDays(2)));
-
-        return applications;
-    }
-
-    // Loan Application class for demonstration
-    public static class LoanApplication {
-        private String applicationId;
-        private String customerId;
-        private String customerName;
-        private String loanType;
-        private String status;
-        private Double amount;
-        private LocalDate applicationDate;
-
-        public LoanApplication(String applicationId, String customerId, String customerName, String loanType,
-                              String status, Double amount, LocalDate applicationDate) {
-            this.applicationId = applicationId;
-            this.customerId = customerId;
-            this.customerName = customerName;
-            this.loanType = loanType;
-            this.status = status;
-            this.amount = amount;
-            this.applicationDate = applicationDate;
-        }
-
-        public String getApplicationId() {
-            return applicationId;
-        }
-
-        public void setApplicationId(String applicationId) {
-            this.applicationId = applicationId;
-        }
-
-        public String getCustomerId() {
-            return customerId;
-        }
-
-        public void setCustomerId(String customerId) {
-            this.customerId = customerId;
-        }
-
-        public String getCustomerName() {
-            return customerName;
-        }
-
-        public void setCustomerName(String customerName) {
-            this.customerName = customerName;
-        }
-
-        public String getLoanType() {
-            return loanType;
-        }
-
-        public void setLoanType(String loanType) {
-            this.loanType = loanType;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public LocalDate getApplicationDate() {
-            return applicationDate;
-        }
-
-        public void setApplicationDate(LocalDate applicationDate) {
-            this.applicationDate = applicationDate;
-        }
-    }
 }

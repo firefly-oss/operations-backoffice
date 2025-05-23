@@ -16,6 +16,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.taskmanagement.TaskDTO;
+import com.vaadin.starter.business.backend.service.TaskManagementService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -28,19 +30,19 @@ import com.vaadin.starter.business.ui.views.ViewFrame;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 @PageTitle(NavigationConstants.WORK_QUEUE)
 @Route(value = "task-management/work-queue", layout = MainLayout.class)
 public class WorkQueue extends ViewFrame {
 
-    private Grid<Task> grid;
+    private Grid<TaskDTO> grid;
     private TextField searchField;
     private ComboBox<String> statusFilter;
     private ComboBox<String> priorityFilter;
-    private Random random = new Random(42); // Fixed seed for reproducible data
+    private final TaskManagementService taskManagementService;
 
-    public WorkQueue() {
+    public WorkQueue(TaskManagementService taskManagementService) {
+        this.taskManagementService = taskManagementService;
         setViewContent(createContent());
     }
 
@@ -113,8 +115,8 @@ public class WorkQueue extends ViewFrame {
         grid.setHeightFull();
 
         // Add columns
-        grid.addColumn(Task::getId).setHeader("ID").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Task::getSubject).setHeader("Subject").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(TaskDTO::getId).setHeader("ID").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(TaskDTO::getSubject).setHeader("Subject").setAutoWidth(true).setFlexGrow(1);
         grid.addColumn(new ComponentRenderer<>(task -> {
             Span span = new Span(task.getStatus());
             span.getElement().getThemeList().add("badge");
@@ -159,11 +161,11 @@ public class WorkQueue extends ViewFrame {
             return span;
         })).setHeader("Priority").setAutoWidth(true).setFlexGrow(0);
 
-        grid.addColumn(Task::getType).setHeader("Type").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Task::getAssignee).setHeader("Assignee").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(new LocalDateRenderer<>(Task::getDueDate, "MMM dd, yyyy"))
+        grid.addColumn(TaskDTO::getType).setHeader("Type").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(TaskDTO::getAssignee).setHeader("Assignee").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new LocalDateRenderer<>(TaskDTO::getDueDate, "MMM dd, yyyy"))
             .setHeader("Due Date").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Task::getCustomer).setHeader("Customer").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(TaskDTO::getCustomer).setHeader("Customer").setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(new ComponentRenderer<>(task -> {
             HorizontalLayout actions = new HorizontalLayout();
@@ -192,18 +194,18 @@ public class WorkQueue extends ViewFrame {
     }
 
     private void refreshGrid() {
-        grid.setItems(generateTasks(100));
+        grid.setItems(taskManagementService.getTasks(100));
     }
 
     private void filterGrid() {
-        List<Task> filteredTasks = new ArrayList<>();
-        List<Task> allTasks = generateTasks(100);
+        List<TaskDTO> filteredTasks = new ArrayList<>();
+        List<TaskDTO> allTasks = taskManagementService.getTasks(100);
 
         String searchTerm = searchField.getValue().toLowerCase();
         String statusValue = statusFilter.getValue();
         String priorityValue = priorityFilter.getValue();
 
-        for (Task task : allTasks) {
+        for (TaskDTO task : allTasks) {
             boolean matchesSearch = searchTerm.isEmpty() || 
                                    task.getSubject().toLowerCase().contains(searchTerm) ||
                                    task.getCustomer().toLowerCase().contains(searchTerm) ||
@@ -220,70 +222,4 @@ public class WorkQueue extends ViewFrame {
         grid.setItems(filteredTasks);
     }
 
-    private List<Task> generateTasks(int count) {
-        List<Task> tasks = new ArrayList<>();
-        String[] subjects = {
-            "Customer account verification", "Payment processing issue", "Document review", 
-            "Loan application review", "Credit limit increase request", "Fraud alert investigation",
-            "Customer complaint", "Account closure request", "Address change verification",
-            "Transaction dispute", "Card replacement request", "Statement discrepancy"
-        };
-
-        String[] statuses = {"New", "In Progress", "Waiting", "Completed", "Cancelled"};
-        String[] priorities = {"High", "Medium", "Low"};
-        String[] types = {"Customer Service", "Account Management", "Loan Processing", "Fraud Investigation", "Document Review"};
-        String[] assignees = {"John Smith", "Maria Garcia", "Ahmed Khan", "Sarah Johnson", "Unassigned"};
-        String[] customers = {"ABC Corp", "Jane Doe", "Global Enterprises", "Local Business LLC", "First Time Customer"};
-
-        for (int i = 1; i <= count; i++) {
-            Task task = new Task();
-            task.setId("TASK-" + (1000 + i));
-            task.setSubject(subjects[random.nextInt(subjects.length)]);
-            task.setStatus(statuses[random.nextInt(statuses.length)]);
-            task.setPriority(priorities[random.nextInt(priorities.length)]);
-            task.setType(types[random.nextInt(types.length)]);
-            task.setAssignee(assignees[random.nextInt(assignees.length)]);
-            task.setDueDate(LocalDate.now().plusDays(random.nextInt(14)));
-            task.setCustomer(customers[random.nextInt(customers.length)]);
-            tasks.add(task);
-        }
-
-        return tasks;
-    }
-
-    // Task data class
-    public static class Task {
-        private String id;
-        private String subject;
-        private String status;
-        private String priority;
-        private String type;
-        private String assignee;
-        private LocalDate dueDate;
-        private String customer;
-
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
-
-        public String getSubject() { return subject; }
-        public void setSubject(String subject) { this.subject = subject; }
-
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-
-        public String getPriority() { return priority; }
-        public void setPriority(String priority) { this.priority = priority; }
-
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
-
-        public String getAssignee() { return assignee; }
-        public void setAssignee(String assignee) { this.assignee = assignee; }
-
-        public LocalDate getDueDate() { return dueDate; }
-        public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-
-        public String getCustomer() { return customer; }
-        public void setCustomer(String customer) { this.customer = customer; }
-    }
 }

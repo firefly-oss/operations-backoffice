@@ -19,6 +19,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.SuspiciousActivityDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -27,6 +29,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,10 +37,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @PageTitle(NavigationConstants.SUSPICIOUS_ACTIVITY_MONITORING)
 @Route(value = "fraud-risk/suspicious-activity", layout = MainLayout.class)
 public class SuspiciousActivityMonitoring extends ViewFrame {
+
+    private final FraudRiskOperationsService fraudRiskOperationsService;
 
     private Grid<SuspiciousActivity> grid;
     private ListDataProvider<SuspiciousActivity> dataProvider;
@@ -53,7 +59,9 @@ public class SuspiciousActivityMonitoring extends ViewFrame {
     private DatePicker detectedDateToFilter;
     private TextField amountFilter;
 
-    public SuspiciousActivityMonitoring() {
+    @Autowired
+    public SuspiciousActivityMonitoring(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
         setViewContent(createContent());
     }
 
@@ -238,8 +246,8 @@ public class SuspiciousActivityMonitoring extends ViewFrame {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
-        // Initialize data provider with mock data
-        Collection<SuspiciousActivity> activities = generateMockData();
+        // Initialize data provider with data from service
+        Collection<SuspiciousActivity> activities = getSuspiciousActivitiesFromService();
         dataProvider = new ListDataProvider<>(activities);
         grid.setDataProvider(dataProvider);
 
@@ -438,54 +446,31 @@ public class SuspiciousActivityMonitoring extends ViewFrame {
         return new Badge(riskLevel, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<SuspiciousActivity> generateMockData() {
-        List<SuspiciousActivity> activities = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
+    private Collection<SuspiciousActivity> getSuspiciousActivitiesFromService() {
+        // Get suspicious activities from the service
+        Collection<SuspiciousActivityDTO> activityDTOs = fraudRiskOperationsService.getSuspiciousActivities();
 
-        String[] customerIds = {"C10045", "C20056", "C30078", "C40023", "C50091"};
-        String[] customerNames = {"John Smith", "Maria Garcia", "Wei Chen", "Sarah Johnson", "Ahmed Hassan"};
-        String[] accountNumbers = {"1234567890", "2345678901", "3456789012", "4567890123", "5678901234"};
-        String[] activityTypes = getActivityTypes();
-        String[] riskLevels = getRiskLevels();
-        String[] statuses = getStatuses();
-        String[] descriptions = {
-            "Multiple large transactions in short time period",
-            "Login attempt from unusual location",
-            "Rapid movement of funds between accounts",
-            "Transaction pattern matches known fraud scheme",
-            "Multiple failed authentication attempts",
-            "Unusual transaction time and amount",
-            "Account accessed from multiple devices simultaneously",
-            "Transaction to high-risk jurisdiction"
-        };
-
-        for (int i = 1; i <= 100; i++) {
-            SuspiciousActivity activity = new SuspiciousActivity();
-            activity.setActivityId("ACT" + String.format("%06d", i));
-
-            int customerIndex = random.nextInt(customerIds.length);
-            activity.setCustomerId(customerIds[customerIndex]);
-            activity.setCustomerName(customerNames[customerIndex]);
-            activity.setAccountNumber(accountNumbers[random.nextInt(accountNumbers.length)]);
-
-            activity.setActivityType(activityTypes[random.nextInt(activityTypes.length)]);
-            activity.setRiskLevel(riskLevels[random.nextInt(riskLevels.length)]);
-            activity.setStatus(statuses[random.nextInt(statuses.length)]);
-
-            // Generate a random date within the last 30 days
-            LocalDateTime now = LocalDateTime.now();
-            activity.setDetectedDate(now.minusDays(random.nextInt(30)).minusHours(random.nextInt(24)));
-
-            // Generate a random amount between 100 and 10000
-            activity.setAmount(100 + random.nextInt(9900));
-
-            activity.setDescription(descriptions[random.nextInt(descriptions.length)]);
-
-            activities.add(activity);
-        }
-
-        return activities;
+        // Convert DTOs to view model objects
+        return activityDTOs.stream()
+                .map(this::convertToViewModel)
+                .collect(Collectors.toList());
     }
+
+    private SuspiciousActivity convertToViewModel(SuspiciousActivityDTO dto) {
+        SuspiciousActivity activity = new SuspiciousActivity();
+        activity.setActivityId(dto.getActivityId());
+        activity.setCustomerId(dto.getCustomerId());
+        activity.setCustomerName(dto.getCustomerName());
+        activity.setAccountNumber(dto.getAccountNumber());
+        activity.setActivityType(dto.getActivityType());
+        activity.setRiskLevel(dto.getRiskLevel());
+        activity.setStatus(dto.getStatus());
+        activity.setDetectedDate(dto.getDetectedDate());
+        activity.setAmount(dto.getAmount());
+        activity.setDescription(dto.getDescription());
+        return activity;
+    }
+
 
     // Inner class to represent a suspicious activity
     public static class SuspiciousActivity {

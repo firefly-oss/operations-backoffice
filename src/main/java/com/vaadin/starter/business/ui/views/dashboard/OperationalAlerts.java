@@ -12,6 +12,10 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.dashboard.AlertDTO;
+import com.vaadin.starter.business.backend.dto.dashboard.AlertSummaryDTO;
+import com.vaadin.starter.business.backend.dto.dashboard.IncidentDTO;
+import com.vaadin.starter.business.backend.service.DashboardService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -28,10 +32,8 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 @PageTitle(NavigationConstants.OPERATIONAL_ALERTS)
@@ -41,7 +43,11 @@ public class OperationalAlerts extends ViewFrame {
     private static final String CLASS_NAME = "operational-alerts";
     public static final String MAX_WIDTH = "1024px";
 
-    public OperationalAlerts() {
+    private final DashboardService dashboardService;
+
+    @Autowired
+    public OperationalAlerts(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
         setViewContent(createContent());
     }
 
@@ -85,10 +91,10 @@ public class OperationalAlerts extends ViewFrame {
         UIUtils.setBorderRadius(BorderRadius.S, cards);
         UIUtils.setShadow(Shadow.XS, cards);
 
-        cards.add(createAlertCard("Critical", 2, "red"));
-        cards.add(createAlertCard("Warning", 5, "orange"));
-        cards.add(createAlertCard("Info", 12, "blue"));
-        cards.add(createAlertCard("Resolved", 8, "green"));
+        List<AlertSummaryDTO> summaries = dashboardService.getAlertSummaries();
+        for (AlertSummaryDTO summary : summaries) {
+            cards.add(createAlertCard(summary.getSeverity(), summary.getCount(), summary.getColor()));
+        }
 
         return cards;
     }
@@ -97,20 +103,20 @@ public class OperationalAlerts extends ViewFrame {
         Icon icon = VaadinIcon.EXCLAMATION_CIRCLE.create();
         icon.setColor(color);
         icon.setSize("2em");
-        
+
         H3 countLabel = new H3(String.valueOf(count));
         countLabel.getStyle().set("margin", "0.2em 0");
-        
+
         Span severityLabel = new Span(severity);
         severityLabel.getStyle().set("font-weight", "bold");
-        
+
         FlexBoxLayout card = new FlexBoxLayout(icon, countLabel, severityLabel);
         card.setFlexDirection(FlexDirection.COLUMN);
         card.setAlignItems(FlexComponent.Alignment.CENTER);
         card.setPadding(Uniform.M);
         card.setSpacing(Vertical.S);
         card.setHeight("120px");
-        
+
         return card;
     }
 
@@ -128,16 +134,16 @@ public class OperationalAlerts extends ViewFrame {
     }
 
     private Component createActiveAlertsGrid() {
-        Grid<Alert> grid = new Grid<>();
+        Grid<AlertDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeight("300px");
 
-        grid.addColumn(Alert::getTimestamp).setHeader("Timestamp").setFlexGrow(1);
-        grid.addColumn(Alert::getSeverity).setHeader("Severity").setFlexGrow(1);
-        grid.addColumn(Alert::getSystem).setHeader("System").setFlexGrow(1);
-        grid.addColumn(Alert::getMessage).setHeader("Message").setFlexGrow(3);
+        grid.addColumn(AlertDTO::getTimestamp).setHeader("Timestamp").setFlexGrow(1);
+        grid.addColumn(AlertDTO::getSeverity).setHeader("Severity").setFlexGrow(1);
+        grid.addColumn(AlertDTO::getSystem).setHeader("System").setFlexGrow(1);
+        grid.addColumn(AlertDTO::getMessage).setHeader("Message").setFlexGrow(3);
 
-        List<Alert> alerts = createMockAlerts();
+        List<AlertDTO> alerts = dashboardService.getActiveAlerts();
         grid.setItems(alerts);
 
         FlexBoxLayout card = new FlexBoxLayout(grid);
@@ -149,61 +155,6 @@ public class OperationalAlerts extends ViewFrame {
         return card;
     }
 
-    private List<Alert> createMockAlerts() {
-        List<Alert> alerts = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusMinutes(5).format(formatter),
-                "Critical",
-                "Payment Gateway",
-                "Connection timeout to payment processor"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusMinutes(15).format(formatter),
-                "Critical",
-                "Database Cluster",
-                "High CPU usage on primary database node"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusMinutes(30).format(formatter),
-                "Warning",
-                "API Gateway",
-                "Increased latency in API responses"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusMinutes(45).format(formatter),
-                "Warning",
-                "Authentication Service",
-                "Increased failed login attempts"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusHours(1).format(formatter),
-                "Warning",
-                "Storage System",
-                "Disk space below 20% threshold"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusHours(2).format(formatter),
-                "Info",
-                "Monitoring System",
-                "Scheduled maintenance starting in 1 hour"
-        ));
-        
-        alerts.add(new Alert(
-                LocalDateTime.now().minusHours(3).format(formatter),
-                "Info",
-                "Load Balancer",
-                "New instance added to server pool"
-        ));
-        
-        return alerts;
-    }
 
     private Component createRecentIncidents() {
         FlexBoxLayout recentIncidents = new FlexBoxLayout(
@@ -219,18 +170,18 @@ public class OperationalAlerts extends ViewFrame {
     }
 
     private Component createRecentIncidentsGrid() {
-        Grid<Incident> grid = new Grid<>();
+        Grid<IncidentDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeight("300px");
 
-        grid.addColumn(Incident::getId).setHeader("ID").setFlexGrow(1);
-        grid.addColumn(Incident::getStartTime).setHeader("Start Time").setFlexGrow(1);
-        grid.addColumn(Incident::getEndTime).setHeader("End Time").setFlexGrow(1);
-        grid.addColumn(Incident::getSystem).setHeader("System").setFlexGrow(1);
-        grid.addColumn(Incident::getDescription).setHeader("Description").setFlexGrow(3);
-        grid.addColumn(Incident::getStatus).setHeader("Status").setFlexGrow(1);
+        grid.addColumn(IncidentDTO::getId).setHeader("ID").setFlexGrow(1);
+        grid.addColumn(IncidentDTO::getStartTime).setHeader("Start Time").setFlexGrow(1);
+        grid.addColumn(IncidentDTO::getEndTime).setHeader("End Time").setFlexGrow(1);
+        grid.addColumn(IncidentDTO::getSystem).setHeader("System").setFlexGrow(1);
+        grid.addColumn(IncidentDTO::getDescription).setHeader("Description").setFlexGrow(3);
+        grid.addColumn(IncidentDTO::getStatus).setHeader("Status").setFlexGrow(1);
 
-        List<Incident> incidents = createMockIncidents();
+        List<IncidentDTO> incidents = dashboardService.getRecentIncidents();
         grid.setItems(incidents);
 
         FlexBoxLayout card = new FlexBoxLayout(grid);
@@ -242,128 +193,5 @@ public class OperationalAlerts extends ViewFrame {
         return card;
     }
 
-    private List<Incident> createMockIncidents() {
-        List<Incident> incidents = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        
-        incidents.add(new Incident(
-                "INC-001",
-                LocalDateTime.now().minusDays(1).format(formatter),
-                LocalDateTime.now().minusDays(1).plusHours(2).format(formatter),
-                "Payment Gateway",
-                "Payment processor connection failure",
-                "Resolved"
-        ));
-        
-        incidents.add(new Incident(
-                "INC-002",
-                LocalDateTime.now().minusDays(2).format(formatter),
-                LocalDateTime.now().minusDays(2).plusHours(1).format(formatter),
-                "Authentication Service",
-                "Increased authentication failures due to misconfiguration",
-                "Resolved"
-        ));
-        
-        incidents.add(new Incident(
-                "INC-003",
-                LocalDateTime.now().minusDays(3).format(formatter),
-                LocalDateTime.now().minusDays(3).plusHours(4).format(formatter),
-                "Database Cluster",
-                "Database replication lag causing data inconsistency",
-                "Resolved"
-        ));
-        
-        incidents.add(new Incident(
-                "INC-004",
-                LocalDateTime.now().minusDays(5).format(formatter),
-                LocalDateTime.now().minusDays(5).plusHours(1).format(formatter),
-                "API Gateway",
-                "Rate limiting misconfiguration causing API throttling",
-                "Resolved"
-        ));
-        
-        incidents.add(new Incident(
-                "INC-005",
-                LocalDateTime.now().minusHours(1).format(formatter),
-                "",
-                "Storage System",
-                "Disk space critical on backup server",
-                "In Progress"
-        ));
-        
-        return incidents;
-    }
 
-    // Data classes for the grids
-    public static class Alert {
-        private String timestamp;
-        private String severity;
-        private String system;
-        private String message;
-
-        public Alert(String timestamp, String severity, String system, String message) {
-            this.timestamp = timestamp;
-            this.severity = severity;
-            this.system = system;
-            this.message = message;
-        }
-
-        public String getTimestamp() {
-            return timestamp;
-        }
-
-        public String getSeverity() {
-            return severity;
-        }
-
-        public String getSystem() {
-            return system;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-    }
-
-    public static class Incident {
-        private String id;
-        private String startTime;
-        private String endTime;
-        private String system;
-        private String description;
-        private String status;
-
-        public Incident(String id, String startTime, String endTime, String system, String description, String status) {
-            this.id = id;
-            this.startTime = startTime;
-            this.endTime = endTime;
-            this.system = system;
-            this.description = description;
-            this.status = status;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public String getStartTime() {
-            return startTime;
-        }
-
-        public String getEndTime() {
-            return endTime;
-        }
-
-        public String getSystem() {
-            return system;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-    }
 }

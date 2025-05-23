@@ -14,8 +14,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.starter.business.backend.ServiceTicket;
-import com.vaadin.starter.business.backend.service.ServiceTicketService;
+import com.vaadin.starter.business.backend.dto.customerservice.ServiceTicketDTO;
+import com.vaadin.starter.business.backend.service.CustomerServiceTicketService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -33,9 +33,9 @@ import java.time.format.DateTimeFormatter;
 @Route(value = "service-tickets", layout = MainLayout.class)
 public class ServiceTickets extends ViewFrame {
 
-    private final ServiceTicketService serviceTicketService;
-    private Grid<ServiceTicket> grid;
-    private ListDataProvider<ServiceTicket> dataProvider;
+    private final CustomerServiceTicketService serviceTicketService;
+    private Grid<ServiceTicketDTO> grid;
+    private ListDataProvider<ServiceTicketDTO> dataProvider;
 
     // Filter fields
     private TextField idFilter;
@@ -55,7 +55,7 @@ public class ServiceTickets extends ViewFrame {
     private DatePicker dueDateToFilter;
 
     @Autowired
-    public ServiceTickets(ServiceTicketService serviceTicketService) {
+    public ServiceTickets(CustomerServiceTicketService serviceTicketService) {
         this.serviceTicketService = serviceTicketService;
         setViewContent(createContent());
     }
@@ -69,7 +69,7 @@ public class ServiceTickets extends ViewFrame {
         return content;
     }
 
-    private void viewDetails(ServiceTicket ticket) {
+    private void viewDetails(ServiceTicketDTO ticket) {
         // TODO: Create ServiceTicketDetails view and uncomment the line below
         // UI.getCurrent().navigate(ServiceTicketDetails.class, ticket.getId());
     }
@@ -178,58 +178,58 @@ public class ServiceTickets extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<ServiceTicket> createGrid() {
+    private Grid<ServiceTicketDTO> createGrid() {
         grid = new Grid<>();
         dataProvider = new ListDataProvider<>(serviceTicketService.getServiceTickets());
         grid.setDataProvider(dataProvider);
 
         // Add columns to the grid
-        grid.addColumn(ServiceTicket::getId)
+        grid.addColumn(ServiceTicketDTO::getId)
                 .setHeader("ID")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getTicketNumber)
+        grid.addColumn(ServiceTicketDTO::getTicketNumber)
                 .setHeader("Ticket Number")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getSubject)
+        grid.addColumn(ServiceTicketDTO::getSubject)
                 .setHeader("Subject")
                 .setFlexGrow(2)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getStatus)
+        grid.addColumn(ServiceTicketDTO::getStatus)
                 .setHeader("Status")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getPriority)
+        grid.addColumn(ServiceTicketDTO::getPriority)
                 .setHeader("Priority")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getCategory)
+        grid.addColumn(ServiceTicketDTO::getCategory)
                 .setHeader("Category")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getServiceType)
+        grid.addColumn(ServiceTicketDTO::getServiceType)
                 .setHeader("Service Type")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getCustomerName)
+        grid.addColumn(ServiceTicketDTO::getCustomerName)
                 .setHeader("Customer Name")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getAssignedTo)
+        grid.addColumn(ServiceTicketDTO::getAssignedTo)
                 .setHeader("Assigned To")
                 .setFlexGrow(1)
                 .setSortable(true);
 
-        grid.addColumn(ServiceTicket::getDepartment)
+        grid.addColumn(ServiceTicketDTO::getDepartment)
                 .setHeader("Department")
                 .setFlexGrow(1)
                 .setSortable(true);
@@ -355,32 +355,32 @@ public class ServiceTickets extends ViewFrame {
     }
 
     private String[] getTicketStatuses() {
-        return java.util.Arrays.stream(ServiceTicket.Status.values())
-                .map(ServiceTicket.Status::getName)
+        return java.util.Arrays.stream(ServiceTicketDTO.Status.values())
+                .map(ServiceTicketDTO.Status::getName)
                 .toArray(String[]::new);
     }
 
     private String[] getTicketPriorities() {
-        return java.util.Arrays.stream(ServiceTicket.Priority.values())
-                .map(ServiceTicket.Priority::getName)
+        return java.util.Arrays.stream(ServiceTicketDTO.Priority.values())
+                .map(ServiceTicketDTO.Priority::getName)
                 .toArray(String[]::new);
     }
 
     private String[] getTicketCategories() {
-        return java.util.Arrays.stream(ServiceTicket.Category.values())
-                .map(ServiceTicket.Category::getName)
+        return java.util.Arrays.stream(ServiceTicketDTO.Category.values())
+                .map(ServiceTicketDTO.Category::getName)
                 .toArray(String[]::new);
     }
 
     private String[] getServiceTypes() {
-        return java.util.Arrays.stream(ServiceTicket.ServiceType.values())
-                .map(ServiceTicket.ServiceType::getName)
+        return java.util.Arrays.stream(ServiceTicketDTO.ServiceType.values())
+                .map(ServiceTicketDTO.ServiceType::getName)
                 .toArray(String[]::new);
     }
 
     private String[] getDepartments() {
-        return java.util.Arrays.stream(ServiceTicket.Department.values())
-                .map(ServiceTicket.Department::getName)
+        return java.util.Arrays.stream(ServiceTicketDTO.Department.values())
+                .map(ServiceTicketDTO.Department::getName)
                 .toArray(String[]::new);
     }
 }

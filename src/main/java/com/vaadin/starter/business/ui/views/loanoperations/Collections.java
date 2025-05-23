@@ -18,6 +18,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.loanoperations.LoanCollectionDTO;
+import com.vaadin.starter.business.backend.service.LoanOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -30,6 +32,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,8 +43,16 @@ import java.util.List;
 @Route(value = "loan-operations/collections", layout = MainLayout.class)
 public class Collections extends ViewFrame {
 
-    private Grid<LoanCollection> grid;
-    private ListDataProvider<LoanCollection> dataProvider;
+    private Grid<LoanCollectionDTO> grid;
+    private ListDataProvider<LoanCollectionDTO> dataProvider;
+
+    private final LoanOperationsService loanOperationsService;
+
+    @Autowired
+    public Collections(LoanOperationsService loanOperationsService) {
+        this.loanOperationsService = loanOperationsService;
+        setViewContent(createContent());
+    }
 
     // Filter form fields
     private TextField collectionIdFilter;
@@ -54,9 +65,6 @@ public class Collections extends ViewFrame {
     private DatePicker dueDateToFilter;
     private ComboBox<String> collectionMethodFilter;
 
-    public Collections() {
-        setViewContent(createContent());
-    }
 
     private Component createContent() {
         FlexBoxLayout content = new FlexBoxLayout(createFilterForm(), createGrid());
@@ -141,11 +149,11 @@ public class Collections extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<LoanCollection> createGrid() {
+    private Grid<LoanCollectionDTO> createGrid() {
         grid = new Grid<>();
 
-        // Initialize with dummy data
-        Collection<LoanCollection> collections = getDummyCollections();
+        // Initialize with data from service
+        Collection<LoanCollectionDTO> collections = loanOperationsService.getLoanCollections();
         dataProvider = new ListDataProvider<>(collections);
         grid.setDataProvider(dataProvider);
 
@@ -153,52 +161,52 @@ public class Collections extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(LoanCollection::getCollectionId)
+        grid.addColumn(LoanCollectionDTO::getCollectionId)
                 .setHeader("Collection ID")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(LoanCollection::getLoanId)
+        grid.addColumn(LoanCollectionDTO::getLoanId)
                 .setHeader("Loan ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(LoanCollection::getCustomerName)
+        grid.addColumn(LoanCollectionDTO::getCustomerName)
                 .setHeader("Customer Name")
                 .setSortable(true)
                 .setWidth("200px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(LoanCollection::getStatus)
+                .setComparator(LoanCollectionDTO::getStatus)
                 .setWidth("120px");
         grid.addColumn(new ComponentRenderer<>(this::createAmountComponent))
                 .setHeader("Amount ($)")
                 .setSortable(true)
-                .setComparator(LoanCollection::getAmount)
+                .setComparator(LoanCollectionDTO::getAmount)
                 .setWidth("120px");
-        grid.addColumn(LoanCollection::getPaymentMethod)
+        grid.addColumn(LoanCollectionDTO::getPaymentMethod)
                 .setHeader("Payment Method")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(LoanCollection::getDueDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanCollectionDTO::getDueDate, "MMM dd, YYYY"))
                 .setHeader("Due Date")
                 .setSortable(true)
-                .setComparator(LoanCollection::getDueDate)
+                .setComparator(LoanCollectionDTO::getDueDate)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(LoanCollection::getPaymentDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanCollectionDTO::getPaymentDate, "MMM dd, YYYY"))
                 .setHeader("Payment Date")
                 .setSortable(true)
-                .setComparator(LoanCollection::getPaymentDate)
+                .setComparator(LoanCollectionDTO::getPaymentDate)
                 .setWidth("150px");
 
         // Add action buttons
         grid.addComponentColumn(collection -> {
             HorizontalLayout actions = new HorizontalLayout();
-            
+
             Button viewButton = UIUtils.createSmallButton("View");
             viewButton.addClickListener(e -> {
                 // View collection details logic would go here
             });
-            
+
             Button processButton = UIUtils.createSmallButton("Record Payment");
             if (collection.getStatus().equals("Pending") || collection.getStatus().equals("Overdue") || collection.getStatus().equals("In Collection")) {
                 processButton.addClickListener(e -> {
@@ -208,17 +216,17 @@ public class Collections extends ViewFrame {
             } else {
                 actions.add(viewButton);
             }
-            
+
             return actions;
         }).setHeader("Actions").setWidth("180px");
 
         return grid;
     }
 
-    private Component createStatusBadge(LoanCollection collection) {
+    private Component createStatusBadge(LoanCollectionDTO collection) {
         String status = collection.getStatus();
         BadgeColor color;
-        
+
         switch (status) {
             case "Paid":
                 color = BadgeColor.SUCCESS;
@@ -235,11 +243,11 @@ public class Collections extends ViewFrame {
             default:
                 color = BadgeColor.NORMAL;
         }
-        
+
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Component createAmountComponent(LoanCollection collection) {
+    private Component createAmountComponent(LoanCollectionDTO collection) {
         Double amount = collection.getAmount();
         Span amountSpan = new Span(UIUtils.formatAmount(amount));
         return amountSpan;
@@ -337,109 +345,4 @@ public class Collections extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<LoanCollection> getDummyCollections() {
-        List<LoanCollection> collections = new ArrayList<>();
-        
-        collections.add(new LoanCollection("C001", "LA002", "Jane Doe", "Pending", 2500.0, "Auto Debit", LocalDate.now().plusDays(5), null));
-        collections.add(new LoanCollection("C002", "LA008", "Jennifer Garcia", "Paid", 1200.0, "Bank Transfer", LocalDate.now().minusDays(10), LocalDate.now().minusDays(8)));
-        collections.add(new LoanCollection("C003", "LA003", "Robert Johnson", "Overdue", 1500.0, "Auto Debit", LocalDate.now().minusDays(5), null));
-        collections.add(new LoanCollection("C004", "LA005", "Michael Brown", "Written Off", 3000.0, "Bank Transfer", LocalDate.now().minusDays(60), null));
-        collections.add(new LoanCollection("C005", "LA001", "John Smith", "Pending", 1800.0, "Auto Debit", LocalDate.now().plusDays(10), null));
-        collections.add(new LoanCollection("C006", "LA007", "David Miller", "Paid", 2200.0, "Digital Wallet", LocalDate.now().minusDays(15), LocalDate.now().minusDays(14)));
-        collections.add(new LoanCollection("C007", "LA006", "Sarah Davis", "In Collection", 1600.0, "Bank Transfer", LocalDate.now().minusDays(20), null));
-        collections.add(new LoanCollection("C008", "LA010", "Lisa Martinez", "Pending", 2000.0, "Auto Debit", LocalDate.now().plusDays(15), null));
-        collections.add(new LoanCollection("C009", "LA004", "Emily Wilson", "Paid", 1900.0, "Check", LocalDate.now().minusDays(5), LocalDate.now().minusDays(3)));
-        collections.add(new LoanCollection("C010", "LA009", "James Rodriguez", "Overdue", 2700.0, "Auto Debit", LocalDate.now().minusDays(2), null));
-        
-        return collections;
-    }
-
-    // Loan Collection class for demonstration
-    public static class LoanCollection {
-        private String collectionId;
-        private String loanId;
-        private String customerName;
-        private String status;
-        private Double amount;
-        private String paymentMethod;
-        private LocalDate dueDate;
-        private LocalDate paymentDate;
-
-        public LoanCollection(String collectionId, String loanId, String customerName, String status,
-                             Double amount, String paymentMethod, LocalDate dueDate, LocalDate paymentDate) {
-            this.collectionId = collectionId;
-            this.loanId = loanId;
-            this.customerName = customerName;
-            this.status = status;
-            this.amount = amount;
-            this.paymentMethod = paymentMethod;
-            this.dueDate = dueDate;
-            this.paymentDate = paymentDate;
-        }
-
-        public String getCollectionId() {
-            return collectionId;
-        }
-
-        public void setCollectionId(String collectionId) {
-            this.collectionId = collectionId;
-        }
-
-        public String getLoanId() {
-            return loanId;
-        }
-
-        public void setLoanId(String loanId) {
-            this.loanId = loanId;
-        }
-
-        public String getCustomerName() {
-            return customerName;
-        }
-
-        public void setCustomerName(String customerName) {
-            this.customerName = customerName;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public String getPaymentMethod() {
-            return paymentMethod;
-        }
-
-        public void setPaymentMethod(String paymentMethod) {
-            this.paymentMethod = paymentMethod;
-        }
-
-        public LocalDate getDueDate() {
-            return dueDate;
-        }
-
-        public void setDueDate(LocalDate dueDate) {
-            this.dueDate = dueDate;
-        }
-
-        public LocalDate getPaymentDate() {
-            return paymentDate;
-        }
-
-        public void setPaymentDate(LocalDate paymentDate) {
-            this.paymentDate = paymentDate;
-        }
-    }
 }

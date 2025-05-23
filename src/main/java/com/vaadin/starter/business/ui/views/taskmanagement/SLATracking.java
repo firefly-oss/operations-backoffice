@@ -27,6 +27,10 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.taskmanagement.NotificationSettingDTO;
+import com.vaadin.starter.business.backend.dto.taskmanagement.SLAPolicyDTO;
+import com.vaadin.starter.business.backend.dto.taskmanagement.SLATaskDTO;
+import com.vaadin.starter.business.backend.service.TaskManagementService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -40,16 +44,16 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 @PageTitle(NavigationConstants.SLA_TRACKING)
 @Route(value = "task-management/sla-tracking", layout = MainLayout.class)
 public class SLATracking extends ViewFrame {
 
     private Div contentArea;
-    private Random random = new Random(42); // Fixed seed for reproducible data
+    private final TaskManagementService taskManagementService;
 
-    public SLATracking() {
+    public SLATracking(TaskManagementService taskManagementService) {
+        this.taskManagementService = taskManagementService;
         setViewContent(createContent());
     }
 
@@ -198,12 +202,12 @@ public class SLATracking extends ViewFrame {
         filterLayout.add(searchField, statusFilter, priorityFilter, typeFilter, refreshButtonLayout);
 
         // Create SLA task grid
-        Grid<SLATask> grid = new Grid<>();
+        Grid<SLATaskDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
         grid.setHeightFull();
 
-        grid.addColumn(SLATask::getId).setHeader("ID").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(SLATask::getSubject).setHeader("Subject").setAutoWidth(true).setFlexGrow(1);
+        grid.addColumn(SLATaskDTO::getId).setHeader("ID").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(SLATaskDTO::getSubject).setHeader("Subject").setAutoWidth(true).setFlexGrow(1);
 
         grid.addColumn(new ComponentRenderer<>(task -> {
             Span span = new Span(task.getSlaStatus());
@@ -243,12 +247,12 @@ public class SLATracking extends ViewFrame {
             return span;
         })).setHeader("Priority").setAutoWidth(true).setFlexGrow(0);
 
-        grid.addColumn(SLATask::getType).setHeader("Type").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(SLATask::getAssignee).setHeader("Assignee").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(new LocalDateRenderer<>(SLATask::getCreatedDate, "MMM dd, yyyy"))
+        grid.addColumn(SLATaskDTO::getType).setHeader("Type").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(SLATaskDTO::getAssignee).setHeader("Assignee").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(new LocalDateRenderer<>(SLATaskDTO::getCreatedDate, "MMM dd, yyyy"))
             .setHeader("Created Date").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(SLATask::getSlaTarget).setHeader("SLA Target").setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(SLATask::getTimeRemaining).setHeader("Time Remaining").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(SLATaskDTO::getSlaTarget).setHeader("SLA Target").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(SLATaskDTO::getTimeRemaining).setHeader("Time Remaining").setAutoWidth(true).setFlexGrow(0);
 
         grid.addColumn(new ComponentRenderer<>(task -> {
             HorizontalLayout actions = new HorizontalLayout();
@@ -267,7 +271,7 @@ public class SLATracking extends ViewFrame {
         })).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
 
         // Load data
-        grid.setItems(generateSLATasks(50));
+        grid.setItems(taskManagementService.getSLATasks(50));
 
         layout.add(filterLayout, grid);
         layout.expand(grid);
@@ -284,14 +288,14 @@ public class SLATracking extends ViewFrame {
         // SLA Policy Configuration
         H4 policyHeader = new H4("SLA Policy Configuration");
 
-        Grid<SLAPolicy> policyGrid = new Grid<>();
+        Grid<SLAPolicyDTO> policyGrid = new Grid<>();
         policyGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-        policyGrid.addColumn(SLAPolicy::getTaskType).setHeader("Task Type").setAutoWidth(true);
-        policyGrid.addColumn(SLAPolicy::getPriority).setHeader("Priority").setAutoWidth(true);
-        policyGrid.addColumn(SLAPolicy::getResponseTime).setHeader("Response Time").setAutoWidth(true);
-        policyGrid.addColumn(SLAPolicy::getResolutionTime).setHeader("Resolution Time").setAutoWidth(true);
-        policyGrid.addColumn(SLAPolicy::getEscalationTime).setHeader("Escalation Time").setAutoWidth(true);
+        policyGrid.addColumn(SLAPolicyDTO::getTaskType).setHeader("Task Type").setAutoWidth(true);
+        policyGrid.addColumn(SLAPolicyDTO::getPriority).setHeader("Priority").setAutoWidth(true);
+        policyGrid.addColumn(SLAPolicyDTO::getResponseTime).setHeader("Response Time").setAutoWidth(true);
+        policyGrid.addColumn(SLAPolicyDTO::getResolutionTime).setHeader("Resolution Time").setAutoWidth(true);
+        policyGrid.addColumn(SLAPolicyDTO::getEscalationTime).setHeader("Escalation Time").setAutoWidth(true);
 
         policyGrid.addColumn(new ComponentRenderer<>(policy -> {
             HorizontalLayout actions = new HorizontalLayout();
@@ -309,19 +313,8 @@ public class SLATracking extends ViewFrame {
             return actions;
         })).setHeader("Actions").setAutoWidth(true);
 
-        // Add sample data
-        List<SLAPolicy> policies = new ArrayList<>();
-        policies.add(new SLAPolicy("Customer Service", "High", "30 min", "4 hrs", "2 hrs"));
-        policies.add(new SLAPolicy("Customer Service", "Medium", "1 hr", "8 hrs", "4 hrs"));
-        policies.add(new SLAPolicy("Customer Service", "Low", "4 hrs", "24 hrs", "12 hrs"));
-        policies.add(new SLAPolicy("Account Management", "High", "1 hr", "8 hrs", "4 hrs"));
-        policies.add(new SLAPolicy("Account Management", "Medium", "2 hrs", "16 hrs", "8 hrs"));
-        policies.add(new SLAPolicy("Account Management", "Low", "8 hrs", "48 hrs", "24 hrs"));
-        policies.add(new SLAPolicy("Loan Processing", "High", "2 hrs", "24 hrs", "12 hrs"));
-        policies.add(new SLAPolicy("Loan Processing", "Medium", "4 hrs", "48 hrs", "24 hrs"));
-        policies.add(new SLAPolicy("Loan Processing", "Low", "8 hrs", "72 hrs", "36 hrs"));
-
-        policyGrid.setItems(policies);
+        // Load data
+        policyGrid.setItems(taskManagementService.getSLAPolicies());
 
         // Add new policy button
         Button addPolicyButton = UIUtils.createPrimaryButton("Add New Policy");
@@ -330,13 +323,13 @@ public class SLATracking extends ViewFrame {
         // Notification settings
         H4 notificationHeader = new H4("SLA Notification Settings");
 
-        Grid<NotificationSetting> notificationGrid = new Grid<>();
+        Grid<NotificationSettingDTO> notificationGrid = new Grid<>();
         notificationGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-        notificationGrid.addColumn(NotificationSetting::getEvent).setHeader("Event").setAutoWidth(true);
-        notificationGrid.addColumn(NotificationSetting::getRecipients).setHeader("Recipients").setAutoWidth(true);
-        notificationGrid.addColumn(NotificationSetting::getChannel).setHeader("Channel").setAutoWidth(true);
-        notificationGrid.addColumn(NotificationSetting::getEnabled).setHeader("Enabled").setAutoWidth(true);
+        notificationGrid.addColumn(NotificationSettingDTO::getEvent).setHeader("Event").setAutoWidth(true);
+        notificationGrid.addColumn(NotificationSettingDTO::getRecipients).setHeader("Recipients").setAutoWidth(true);
+        notificationGrid.addColumn(NotificationSettingDTO::getChannel).setHeader("Channel").setAutoWidth(true);
+        notificationGrid.addColumn(NotificationSettingDTO::getEnabled).setHeader("Enabled").setAutoWidth(true);
 
         notificationGrid.addColumn(new ComponentRenderer<>(setting -> {
             Button editButton = new Button(VaadinIcon.EDIT.create());
@@ -345,14 +338,8 @@ public class SLATracking extends ViewFrame {
             return editButton;
         })).setHeader("Actions").setAutoWidth(true);
 
-        // Add sample data
-        List<NotificationSetting> notifications = new ArrayList<>();
-        notifications.add(new NotificationSetting("SLA Approaching (75%)", "Assignee, Team Lead", "Email, System", "Yes"));
-        notifications.add(new NotificationSetting("SLA Approaching (90%)", "Assignee, Team Lead, Manager", "Email, System, SMS", "Yes"));
-        notifications.add(new NotificationSetting("SLA Breached", "Assignee, Team Lead, Manager, Director", "Email, System, SMS", "Yes"));
-        notifications.add(new NotificationSetting("SLA Resolved", "Assignee, Team Lead", "Email, System", "Yes"));
-
-        notificationGrid.setItems(notifications);
+        // Load data
+        notificationGrid.setItems(taskManagementService.getNotificationSettings());
 
         // Add new notification button
         Button addNotificationButton = UIUtils.createPrimaryButton("Add Notification");
@@ -850,128 +837,8 @@ public class SLATracking extends ViewFrame {
         return chart;
     }
 
-    private List<SLATask> generateSLATasks(int count) {
-        List<SLATask> tasks = new ArrayList<>();
-        String[] subjects = {
-            "Customer account verification", "Payment processing issue", "Document review", 
-            "Loan application review", "Credit limit increase request", "Fraud alert investigation",
-            "Customer complaint", "Account closure request", "Address change verification",
-            "Transaction dispute", "Card replacement request", "Statement discrepancy"
-        };
-
-        String[] slaStatuses = {"Met", "At Risk", "Breached"};
-        String[] priorities = {"High", "Medium", "Low"};
-        String[] types = {"Customer Service", "Account Management", "Loan Processing", "Fraud Investigation", "Document Review"};
-        String[] assignees = {"John Smith", "Maria Garcia", "Ahmed Khan", "Sarah Johnson", "Unassigned"};
-        String[] slaTargets = {"4 hours", "8 hours", "24 hours", "48 hours"};
-        String[] timeRemaining = {"2 hours", "30 minutes", "Overdue (15 min)", "Overdue (2 hrs)", "1 hour", "4 hours"};
-
-        for (int i = 1; i <= count; i++) {
-            SLATask task = new SLATask();
-            task.setId("TASK-" + (1000 + i));
-            task.setSubject(subjects[random.nextInt(subjects.length)]);
-            task.setSlaStatus(slaStatuses[random.nextInt(slaStatuses.length)]);
-            task.setPriority(priorities[random.nextInt(priorities.length)]);
-            task.setType(types[random.nextInt(types.length)]);
-            task.setAssignee(assignees[random.nextInt(assignees.length)]);
-            task.setCreatedDate(LocalDate.now().minusDays(random.nextInt(7)));
-            task.setSlaTarget(slaTargets[random.nextInt(slaTargets.length)]);
-            task.setTimeRemaining(timeRemaining[random.nextInt(timeRemaining.length)]);
-            tasks.add(task);
-        }
-
-        return tasks;
-    }
 
     private Number[] generateRandomData(int count, double min, double max) {
-        Number[] data = new Number[count];
-        for (int i = 0; i < count; i++) {
-            data[i] = min + (random.nextDouble() * (max - min));
-        }
-        return data;
-    }
-
-    // SLA Task data class
-    public static class SLATask {
-        private String id;
-        private String subject;
-        private String slaStatus;
-        private String priority;
-        private String type;
-        private String assignee;
-        private LocalDate createdDate;
-        private String slaTarget;
-        private String timeRemaining;
-
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
-
-        public String getSubject() { return subject; }
-        public void setSubject(String subject) { this.subject = subject; }
-
-        public String getSlaStatus() { return slaStatus; }
-        public void setSlaStatus(String slaStatus) { this.slaStatus = slaStatus; }
-
-        public String getPriority() { return priority; }
-        public void setPriority(String priority) { this.priority = priority; }
-
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
-
-        public String getAssignee() { return assignee; }
-        public void setAssignee(String assignee) { this.assignee = assignee; }
-
-        public LocalDate getCreatedDate() { return createdDate; }
-        public void setCreatedDate(LocalDate createdDate) { this.createdDate = createdDate; }
-
-        public String getSlaTarget() { return slaTarget; }
-        public void setSlaTarget(String slaTarget) { this.slaTarget = slaTarget; }
-
-        public String getTimeRemaining() { return timeRemaining; }
-        public void setTimeRemaining(String timeRemaining) { this.timeRemaining = timeRemaining; }
-    }
-
-    // SLA Policy data class
-    public static class SLAPolicy {
-        private String taskType;
-        private String priority;
-        private String responseTime;
-        private String resolutionTime;
-        private String escalationTime;
-
-        public SLAPolicy(String taskType, String priority, String responseTime, 
-                        String resolutionTime, String escalationTime) {
-            this.taskType = taskType;
-            this.priority = priority;
-            this.responseTime = responseTime;
-            this.resolutionTime = resolutionTime;
-            this.escalationTime = escalationTime;
-        }
-
-        public String getTaskType() { return taskType; }
-        public String getPriority() { return priority; }
-        public String getResponseTime() { return responseTime; }
-        public String getResolutionTime() { return resolutionTime; }
-        public String getEscalationTime() { return escalationTime; }
-    }
-
-    // Notification Setting data class
-    public static class NotificationSetting {
-        private String event;
-        private String recipients;
-        private String channel;
-        private String enabled;
-
-        public NotificationSetting(String event, String recipients, String channel, String enabled) {
-            this.event = event;
-            this.recipients = recipients;
-            this.channel = channel;
-            this.enabled = enabled;
-        }
-
-        public String getEvent() { return event; }
-        public String getRecipients() { return recipients; }
-        public String getChannel() { return channel; }
-        public String getEnabled() { return enabled; }
+        return taskManagementService.generateRandomData(count, min, max);
     }
 }

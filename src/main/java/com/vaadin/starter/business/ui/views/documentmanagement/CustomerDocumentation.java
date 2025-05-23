@@ -16,6 +16,9 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.documentmanagement.DocumentDTO;
+import com.vaadin.starter.business.backend.mapper.DocumentMapper;
+import com.vaadin.starter.business.backend.service.DocumentService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle(NavigationConstants.CUSTOMER_DOCUMENTATION)
 @Route(value = "document-management/customer-documentation", layout = MainLayout.class)
@@ -53,7 +57,13 @@ public class CustomerDocumentation extends ViewFrame {
     private DatePicker uploadDateToFilter;
     private TextField filenameFilter;
 
-    public CustomerDocumentation() {
+    private final DocumentService documentService;
+    private final DocumentMapper documentMapper;
+
+    @Autowired
+    public CustomerDocumentation(DocumentService documentService, DocumentMapper documentMapper) {
+        this.documentService = documentService;
+        this.documentMapper = documentMapper;
         setViewContent(createContent());
     }
 
@@ -148,8 +158,9 @@ public class CustomerDocumentation extends ViewFrame {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
-        // Initialize data provider with mock data
-        Collection<Document> documents = generateMockData();
+        // Initialize data provider with data from service
+        Collection<DocumentDTO> documentDTOs = documentService.getDocuments();
+        Collection<Document> documents = documentMapper.toEntityList(documentDTOs);
         dataProvider = new ListDataProvider<>(documents);
         grid.setDataProvider(dataProvider);
 
@@ -297,28 +308,21 @@ public class CustomerDocumentation extends ViewFrame {
     }
 
     private String[] getDocumentTypes() {
-        return new String[] {
-            "ID Document", 
-            "Proof of Address", 
-            "Income Statement", 
-            "Tax Return", 
-            "Bank Statement",
-            "Employment Verification",
-            "Signature Card",
-            "Contract",
-            "Application Form",
-            "Power of Attorney"
-        };
+        DocumentDTO.DocumentType[] types = DocumentDTO.DocumentType.values();
+        String[] result = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            result[i] = types[i].getName();
+        }
+        return result;
     }
 
     private String[] getStatuses() {
-        return new String[] {
-            "Pending Review", 
-            "Approved", 
-            "Rejected", 
-            "Expired", 
-            "Needs Update"
-        };
+        DocumentDTO.Status[] statuses = DocumentDTO.Status.values();
+        String[] result = new String[statuses.length];
+        for (int i = 0; i < statuses.length; i++) {
+            result[i] = statuses[i].getName();
+        }
+        return result;
     }
 
     private Component createStatusBadge(String status) {
@@ -346,92 +350,6 @@ public class CustomerDocumentation extends ViewFrame {
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<Document> generateMockData() {
-        List<Document> documents = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
-
-        String[] customerIds = {"C10045", "C20056", "C30078", "C40023", "C50091", "C60112", "C70134", "C80156"};
-        String[] customerNames = {
-            "John Smith", 
-            "Maria Garcia", 
-            "Wei Chen", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
-
-        String[] documentTypes = getDocumentTypes();
-        String[] statuses = getStatuses();
-        String[] fileExtensions = {".pdf", ".jpg", ".png", ".docx", ".xlsx"};
-
-        String[] uploadedBy = {
-            "John Smith", 
-            "Maria Rodriguez", 
-            "Wei Zhang", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
-
-        String[] descriptions = {
-            "Customer identification document",
-            "Proof of residence",
-            "Financial statement for loan application",
-            "Supporting document for account opening",
-            "Required document for KYC compliance",
-            "Additional verification document",
-            "Document submitted for account update",
-            "Mandatory regulatory document"
-        };
-
-        for (int i = 1; i <= 50; i++) {
-            Document document = new Document();
-            document.setDocumentId("DOC" + String.format("%06d", i));
-
-            int customerIndex = random.nextInt(customerIds.length);
-            document.setCustomerId(customerIds[customerIndex]);
-            document.setCustomerName(customerNames[customerIndex]);
-
-            String documentType = documentTypes[random.nextInt(documentTypes.length)];
-            document.setDocumentType(documentType);
-
-            document.setStatus(statuses[random.nextInt(statuses.length)]);
-
-            // Generate a filename based on document type
-            String fileExtension = fileExtensions[random.nextInt(fileExtensions.length)];
-            document.setFilename(documentType.replace(" ", "_").toLowerCase() + "_" + 
-                                customerIds[customerIndex].toLowerCase() + "_" + 
-                                (random.nextInt(900) + 100) + fileExtension);
-
-            // Generate a random upload date within the last 180 days
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime uploadDate = now.minusDays(random.nextInt(180)).minusHours(random.nextInt(24));
-            document.setUploadDate(uploadDate);
-
-            // Generate a random file size between 100KB and 10MB
-            document.setFileSize(formatFileSize(100 + random.nextInt(9900)));
-
-            document.setUploadedBy(uploadedBy[random.nextInt(uploadedBy.length)]);
-            document.setDescription(descriptions[random.nextInt(descriptions.length)]);
-
-            documents.add(document);
-        }
-
-        return documents;
-    }
-
-    private String formatFileSize(int sizeInKB) {
-        if (sizeInKB < 1024) {
-            return sizeInKB + " KB";
-        } else {
-            double sizeInMB = sizeInKB / 1024.0;
-            return String.format("%.2f MB", sizeInMB);
-        }
-    }
 
     // Inner class to represent a document
     public static class Document {

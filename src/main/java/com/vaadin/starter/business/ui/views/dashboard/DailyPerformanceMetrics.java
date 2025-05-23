@@ -11,6 +11,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.service.DashboardService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -27,6 +28,9 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 @PageTitle(NavigationConstants.DAILY_PERFORMANCE_METRICS)
 @Route(value = "dashboard/daily-performance-metrics", layout = MainLayout.class)
@@ -35,7 +39,11 @@ public class DailyPerformanceMetrics extends ViewFrame {
     private static final String CLASS_NAME = "daily-performance-metrics";
     public static final String MAX_WIDTH = "1024px";
 
-    public DailyPerformanceMetrics() {
+    private final DashboardService dashboardService;
+
+    @Autowired
+    public DailyPerformanceMetrics(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
         setViewContent(createContent());
     }
 
@@ -79,11 +87,9 @@ public class DailyPerformanceMetrics extends ViewFrame {
         Configuration conf = chart.getConfiguration();
         conf.getChart().setStyledMode(true);
         conf.setTitle("Today's Transaction Volume by Hour");
-        
+
         XAxis xAxis = new XAxis();
-        xAxis.setCategories("00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", 
-                "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
-                "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00");
+        xAxis.setCategories(dashboardService.getHourlyCategories().toArray(new String[0]));
         conf.addxAxis(xAxis);
 
         YAxis yAxis = new YAxis();
@@ -92,17 +98,14 @@ public class DailyPerformanceMetrics extends ViewFrame {
 
         // Add multiple series for different transaction types
         ListSeries payments = new ListSeries("Payments");
-        payments.setData(120, 90, 80, 70, 60, 90, 150, 250, 300, 280, 260, 240, 
-                         320, 350, 330, 310, 290, 270, 250, 230, 210, 190, 170, 150);
-        
+        payments.setData(dashboardService.getPaymentTransactions().toArray(new Number[0]));
+
         ListSeries transfers = new ListSeries("Transfers");
-        transfers.setData(80, 70, 60, 50, 40, 60, 100, 180, 220, 200, 190, 180, 
-                         240, 260, 250, 230, 210, 190, 170, 150, 130, 110, 90, 70);
-        
+        transfers.setData(dashboardService.getTransferTransactions().toArray(new Number[0]));
+
         ListSeries inquiries = new ListSeries("Inquiries");
-        inquiries.setData(200, 150, 130, 110, 100, 140, 220, 350, 420, 400, 380, 360, 
-                         450, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300, 280);
-        
+        inquiries.setData(dashboardService.getInquiryTransactions().toArray(new Number[0]));
+
         conf.addSeries(payments);
         conf.addSeries(transfers);
         conf.addSeries(inquiries);
@@ -136,9 +139,9 @@ public class DailyPerformanceMetrics extends ViewFrame {
         Configuration conf = chart.getConfiguration();
         conf.getChart().setStyledMode(true);
         conf.setTitle("Active Users by Channel");
-        
+
         XAxis xAxis = new XAxis();
-        xAxis.setCategories("Web", "Mobile App", "API", "Branch", "Call Center");
+        xAxis.setCategories(dashboardService.getUserActivityChannels().toArray(new String[0]));
         conf.addxAxis(xAxis);
 
         YAxis yAxis = new YAxis();
@@ -147,14 +150,14 @@ public class DailyPerformanceMetrics extends ViewFrame {
 
         // Create series for different time periods
         ListSeries morning = new ListSeries("Morning (6-12)");
-        morning.setData(2500, 4200, 1800, 850, 650);
-        
+        morning.setData(dashboardService.getMorningUserActivity().toArray(new Number[0]));
+
         ListSeries afternoon = new ListSeries("Afternoon (12-18)");
-        afternoon.setData(3200, 5100, 2200, 920, 780);
-        
+        afternoon.setData(dashboardService.getAfternoonUserActivity().toArray(new Number[0]));
+
         ListSeries evening = new ListSeries("Evening (18-24)");
-        evening.setData(2800, 4800, 1950, 320, 580);
-        
+        evening.setData(dashboardService.getEveningUserActivity().toArray(new Number[0]));
+
         conf.addSeries(morning);
         conf.addSeries(afternoon);
         conf.addSeries(evening);
@@ -188,10 +191,10 @@ public class DailyPerformanceMetrics extends ViewFrame {
         UIUtils.setBorderRadius(BorderRadius.S, cards);
         UIUtils.setShadow(Shadow.XS, cards);
 
-        cards.add(createMetricCard("API Response Time", "85ms", "↓ 12ms"));
-        cards.add(createMetricCard("Page Load Time", "1.2s", "↓ 0.3s"));
-        cards.add(createMetricCard("Database Query Time", "45ms", "↓ 8ms"));
-        cards.add(createMetricCard("Authentication Time", "120ms", "↑ 15ms"));
+        List<DashboardService.ResponseTimeMetric> metrics = dashboardService.getResponseTimeMetrics();
+        for (DashboardService.ResponseTimeMetric metric : metrics) {
+            cards.add(createMetricCard(metric.getMetric(), metric.getValue(), metric.getChange()));
+        }
 
         return cards;
     }
@@ -199,27 +202,27 @@ public class DailyPerformanceMetrics extends ViewFrame {
     private Component createMetricCard(String metric, String value, String change) {
         Span metricName = new Span(metric);
         metricName.getStyle().set("font-weight", "bold");
-        
+
         H3 metricValue = new H3(value);
         metricValue.getStyle().set("margin", "0.2em 0");
-        
+
         Span changeLabel = new Span(change);
         changeLabel.getStyle().set("font-size", "0.8em");
-        
+
         // Set color based on whether it's an improvement (lower is better for response times)
         if (change.contains("↓")) {
             changeLabel.getStyle().set("color", "green");
         } else {
             changeLabel.getStyle().set("color", "red");
         }
-        
+
         FlexBoxLayout card = new FlexBoxLayout(metricName, metricValue, changeLabel);
         card.setFlexDirection(FlexDirection.COLUMN);
         card.setAlignItems(FlexComponent.Alignment.CENTER);
         card.setPadding(Uniform.M);
         card.setSpacing(Vertical.XS);
         card.setHeight("120px");
-        
+
         return card;
     }
 }

@@ -13,6 +13,8 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.transactions.TransactionReconciliationDTO;
+import com.vaadin.starter.business.backend.service.TransactionOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -29,6 +31,7 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -42,7 +45,13 @@ public class TransactionReconciliation extends ViewFrame {
     private static final String CLASS_NAME = "transaction-reconciliation";
     public static final String MAX_WIDTH = "1024px";
 
-    public TransactionReconciliation() {
+    private final TransactionOperationsService transactionOperationsService;
+    private TransactionReconciliationDTO reconciliationData;
+
+    @Autowired
+    public TransactionReconciliation(TransactionOperationsService transactionOperationsService) {
+        this.transactionOperationsService = transactionOperationsService;
+        this.reconciliationData = transactionOperationsService.getTransactionReconciliationData();
         setViewContent(createContent());
     }
 
@@ -86,10 +95,23 @@ public class TransactionReconciliation extends ViewFrame {
         UIUtils.setBorderRadius(BorderRadius.S, cards);
         UIUtils.setShadow(Shadow.XS, cards);
 
-        cards.add(createSummaryCard("Total Transactions", "1,245", ""));
-        cards.add(createSummaryCard("Reconciled", "1,230", "green"));
-        cards.add(createSummaryCard("Pending", "10", "orange"));
-        cards.add(createSummaryCard("Discrepancies", "5", "red"));
+        // Calculate totals from reconciliation data
+        int totalTransactions = 0;
+        int totalReconciled = 0;
+        int totalDiscrepancies = 0;
+
+        for (TransactionReconciliationDTO.ReconciliationSummaryDTO summary : reconciliationData.getSummaries()) {
+            totalTransactions += summary.getTotal();
+            totalReconciled += summary.getMatched();
+            totalDiscrepancies += summary.getUnmatched();
+        }
+
+        int pending = totalTransactions - totalReconciled - totalDiscrepancies;
+
+        cards.add(createSummaryCard("Total Transactions", String.format("%,d", totalTransactions), ""));
+        cards.add(createSummaryCard("Reconciled", String.format("%,d", totalReconciled), "green"));
+        cards.add(createSummaryCard("Pending", String.format("%,d", pending), "orange"));
+        cards.add(createSummaryCard("Discrepancies", String.format("%,d", totalDiscrepancies), "red"));
 
         return cards;
     }
@@ -143,9 +165,11 @@ public class TransactionReconciliation extends ViewFrame {
         yAxis.setTitle("Number of Discrepancies");
         conf.addyAxis(yAxis);
 
+        // TODO: This data should be moved to the TransactionOperationsService in the future
+        // Currently using mocked data as the DTO doesn't have a field for discrepancy analysis
         ListSeries series = new ListSeries("Current Month");
         series.setData(3, 1, 0, 1, 0);
-        
+
         ListSeries previousSeries = new ListSeries("Previous Month");
         previousSeries.setData(2, 2, 1, 0, 1);
 
@@ -187,7 +211,7 @@ public class TransactionReconciliation extends ViewFrame {
         grid.addColumn(ReconciliationRecord::getDiscrepancies).setHeader("Discrepancies").setWidth("120px");
         grid.addColumn(ReconciliationRecord::getStatus).setHeader("Status").setWidth("120px");
 
-        List<ReconciliationRecord> records = createMockReconciliationRecords();
+        List<ReconciliationRecord> records = createReconciliationRecordsFromDTO();
         grid.setItems(records);
 
         FlexBoxLayout card = new FlexBoxLayout(grid);
@@ -199,56 +223,73 @@ public class TransactionReconciliation extends ViewFrame {
         return card;
     }
 
-    private List<ReconciliationRecord> createMockReconciliationRecords() {
+    private List<ReconciliationRecord> createReconciliationRecordsFromDTO() {
         List<ReconciliationRecord> records = new ArrayList<>();
-        LocalDate today = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        
-        records.add(new ReconciliationRecord(
-                today.format(formatter),
-                "Core Banking",
-                "245",
-                "245",
-                "0",
-                "Completed"
-        ));
-        
-        records.add(new ReconciliationRecord(
-                today.minusDays(1).format(formatter),
-                "Payment Gateway",
-                "312",
-                "310",
-                "2",
-                "Completed with Issues"
-        ));
-        
-        records.add(new ReconciliationRecord(
-                today.minusDays(2).format(formatter),
-                "Core Banking",
-                "278",
-                "275",
-                "3",
-                "Completed with Issues"
-        ));
-        
-        records.add(new ReconciliationRecord(
-                today.minusDays(3).format(formatter),
-                "Payment Gateway",
-                "298",
-                "298",
-                "0",
-                "Completed"
-        ));
-        
-        records.add(new ReconciliationRecord(
-                today.minusDays(4).format(formatter),
-                "Core Banking",
-                "256",
-                "256",
-                "0",
-                "Completed"
-        ));
-        
+
+        // Group items by date and source
+        for (TransactionReconciliationDTO.ReconciliationItemDTO item : reconciliationData.getItems()) {
+            String date = item.getDate().format(formatter);
+            String system = item.getSource();
+
+            // Find if we already have a record for this date and system
+            ReconciliationRecord existingRecord = records.stream()
+                .filter(r -> r.getDate().equals(date) && r.getSystem().equals(system))
+                .findFirst()
+                .orElse(null);
+
+            if (existingRecord == null) {
+                // Create a new record
+                String status = "Completed";
+                int transactions = 1;
+                int reconciled = item.getStatus().equals("Matched") ? 1 : 0;
+                int discrepancies = item.getStatus().equals("Unmatched") ? 1 : 0;
+
+                if (discrepancies > 0) {
+                    status = "Completed with Issues";
+                }
+
+                records.add(new ReconciliationRecord(
+                    date,
+                    system,
+                    String.valueOf(transactions),
+                    String.valueOf(reconciled),
+                    String.valueOf(discrepancies),
+                    status
+                ));
+            } else {
+                // Update existing record
+                int transactions = Integer.parseInt(existingRecord.getTransactions()) + 1;
+                int reconciled = Integer.parseInt(existingRecord.getReconciled());
+                int discrepancies = Integer.parseInt(existingRecord.getDiscrepancies());
+
+                if (item.getStatus().equals("Matched")) {
+                    reconciled++;
+                } else if (item.getStatus().equals("Unmatched")) {
+                    discrepancies++;
+                }
+
+                String status = "Completed";
+                if (discrepancies > 0) {
+                    status = "Completed with Issues";
+                }
+
+                // Remove the existing record and add an updated one
+                records.remove(existingRecord);
+                records.add(new ReconciliationRecord(
+                    date,
+                    system,
+                    String.valueOf(transactions),
+                    String.valueOf(reconciled),
+                    String.valueOf(discrepancies),
+                    status
+                ));
+            }
+        }
+
+        // Sort records by date (newest first)
+        records.sort((r1, r2) -> r2.getDate().compareTo(r1.getDate()));
+
         return records;
     }
 

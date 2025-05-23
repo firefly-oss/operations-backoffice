@@ -13,6 +13,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.SuspiciousActivityDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.components.ListItem;
@@ -25,12 +27,15 @@ import com.vaadin.starter.business.ui.util.BoxShadowBorders;
 import com.vaadin.starter.business.ui.util.LumoStyles;
 import com.vaadin.starter.business.ui.util.css.WhiteSpace;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
 
 @PageTitle("Suspicious Activity Details")
 @Route(value = "fraud-risk/suspicious-activity-details", layout = MainLayout.class)
 public class SuspiciousActivityDetails extends ViewFrame implements HasUrlParameter<String> {
+
+    private final FraudRiskOperationsService fraudRiskOperationsService;
 
     private ListItem activityId;
     private ListItem customerId;
@@ -45,12 +50,37 @@ public class SuspiciousActivityDetails extends ViewFrame implements HasUrlParame
 
     private SuspiciousActivityMonitoring.SuspiciousActivity activity;
 
+    @Autowired
+    public SuspiciousActivityDetails(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
+    }
+
     @Override
     public void setParameter(BeforeEvent beforeEvent, String activityId) {
-        // In a real application, this would fetch the activity from a service
-        // For this example, we'll create a mock activity
-        activity = createMockActivity(activityId);
-        setViewContent(createContent());
+        // Fetch the suspicious activity from the service
+        SuspiciousActivityDTO activityDTO = fraudRiskOperationsService.getSuspiciousActivityById(activityId);
+        if (activityDTO != null) {
+            activity = convertToViewModel(activityDTO);
+            setViewContent(createContent());
+        } else {
+            // Handle activity not found
+            UI.getCurrent().navigate("fraud-risk/suspicious-activity");
+        }
+    }
+
+    private SuspiciousActivityMonitoring.SuspiciousActivity convertToViewModel(SuspiciousActivityDTO dto) {
+        SuspiciousActivityMonitoring.SuspiciousActivity activity = new SuspiciousActivityMonitoring.SuspiciousActivity();
+        activity.setActivityId(dto.getActivityId());
+        activity.setCustomerId(dto.getCustomerId());
+        activity.setCustomerName(dto.getCustomerName());
+        activity.setAccountNumber(dto.getAccountNumber());
+        activity.setActivityType(dto.getActivityType());
+        activity.setRiskLevel(dto.getRiskLevel());
+        activity.setStatus(dto.getStatus());
+        activity.setDetectedDate(dto.getDetectedDate());
+        activity.setAmount(dto.getAmount());
+        activity.setDescription(dto.getDescription());
+        return activity;
     }
 
     private Component createContent() {
@@ -213,18 +243,4 @@ public class SuspiciousActivityDetails extends ViewFrame implements HasUrlParame
         return appBar;
     }
 
-    private SuspiciousActivityMonitoring.SuspiciousActivity createMockActivity(String activityId) {
-        SuspiciousActivityMonitoring.SuspiciousActivity activity = new SuspiciousActivityMonitoring.SuspiciousActivity();
-        activity.setActivityId(activityId);
-        activity.setCustomerId("C10045");
-        activity.setCustomerName("John Smith");
-        activity.setAccountNumber("1234567890");
-        activity.setActivityType("Unusual Transaction");
-        activity.setRiskLevel("High");
-        activity.setStatus("Under Review");
-        activity.setDetectedDate(java.time.LocalDateTime.now().minusDays(2));
-        activity.setAmount(5000.00);
-        activity.setDescription("Multiple large transactions in short time period. Customer made 5 transactions totaling $25,000 within 2 hours, which is unusual for this account profile.");
-        return activity;
-    }
 }

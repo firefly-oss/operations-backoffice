@@ -15,7 +15,7 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.starter.business.backend.CustomerRequest;
+import com.vaadin.starter.business.backend.dto.customerservice.CustomerRequestDTO;
 import com.vaadin.starter.business.backend.service.CustomerRequestService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -34,8 +34,8 @@ import java.util.Collection;
 @Route(value = "customer-service/requests", layout = MainLayout.class)
 public class CustomerRequests extends ViewFrame {
 
-    private Grid<CustomerRequest> grid;
-    private ListDataProvider<CustomerRequest> dataProvider;
+    private Grid<CustomerRequestDTO> grid;
+    private ListDataProvider<CustomerRequestDTO> dataProvider;
 
     // Filter form fields
     private TextField idFilter;
@@ -68,7 +68,7 @@ public class CustomerRequests extends ViewFrame {
         return content;
     }
 
-    private void viewDetails(CustomerRequest request) {
+    private void viewDetails(CustomerRequestDTO request) {
         UI.getCurrent().navigate(CustomerRequestDetails.class, request.getId());
     }
 
@@ -163,12 +163,12 @@ public class CustomerRequests extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<CustomerRequest> createGrid() {
+    private Grid<CustomerRequestDTO> createGrid() {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
         // Initialize data provider
-        Collection<CustomerRequest> requests = customerRequestService.getCustomerRequests();
+        Collection<CustomerRequestDTO> requests = customerRequestService.getCustomerRequests();
         dataProvider = new ListDataProvider<>(requests);
         grid.setDataProvider(dataProvider);
 
@@ -176,35 +176,35 @@ public class CustomerRequests extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(CustomerRequest::getId)
+        grid.addColumn(CustomerRequestDTO::getId)
                 .setHeader("ID")
                 .setSortable(true)
                 .setWidth("100px");
-        grid.addColumn(CustomerRequest::getRequestNumber)
+        grid.addColumn(CustomerRequestDTO::getRequestNumber)
                 .setHeader("Request Number")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(CustomerRequest::getSubject)
+        grid.addColumn(CustomerRequestDTO::getSubject)
                 .setHeader("Subject")
                 .setSortable(true)
                 .setWidth("250px");
-        grid.addColumn(CustomerRequest::getStatus)
+        grid.addColumn(CustomerRequestDTO::getStatus)
                 .setHeader("Status")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(CustomerRequest::getPriority)
+        grid.addColumn(CustomerRequestDTO::getPriority)
                 .setHeader("Priority")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(CustomerRequest::getType)
+        grid.addColumn(CustomerRequestDTO::getType)
                 .setHeader("Type")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(CustomerRequest::getCustomerName)
+        grid.addColumn(CustomerRequestDTO::getCustomerName)
                 .setHeader("Customer")
                 .setSortable(true)
                 .setWidth("200px");
-        grid.addColumn(CustomerRequest::getAssignedTo)
+        grid.addColumn(CustomerRequestDTO::getAssignedTo)
                 .setHeader("Assigned To")
                 .setSortable(true)
                 .setWidth("150px");
@@ -216,7 +216,7 @@ public class CustomerRequests extends ViewFrame {
                 })
                 .setHeader("Created Date")
                 .setSortable(true)
-                .setComparator(CustomerRequest::getCreatedDate)
+                .setComparator(CustomerRequestDTO::getCreatedDate)
                 .setWidth("150px");
         grid.addColumn(request -> {
                     if (request.getCompletionDate() != null) {
@@ -226,9 +226,9 @@ public class CustomerRequests extends ViewFrame {
                 })
                 .setHeader("Completion Date")
                 .setSortable(true)
-                .setComparator(CustomerRequest::getCompletionDate)
+                .setComparator(CustomerRequestDTO::getCompletionDate)
                 .setWidth("150px");
-        grid.addColumn(CustomerRequest::getChannel)
+        grid.addColumn(CustomerRequestDTO::getChannel)
                 .setHeader("Channel")
                 .setSortable(true)
                 .setWidth("120px");
@@ -356,7 +356,7 @@ public class CustomerRequests extends ViewFrame {
     }
 
     private String[] getRequestStatuses() {
-        CustomerRequest.Status[] statuses = CustomerRequest.Status.values();
+        CustomerRequestDTO.Status[] statuses = CustomerRequestDTO.Status.values();
         String[] statusNames = new String[statuses.length];
         for (int i = 0; i < statuses.length; i++) {
             statusNames[i] = statuses[i].getName();
@@ -365,7 +365,7 @@ public class CustomerRequests extends ViewFrame {
     }
 
     private String[] getRequestPriorities() {
-        CustomerRequest.Priority[] priorities = CustomerRequest.Priority.values();
+        CustomerRequestDTO.Priority[] priorities = CustomerRequestDTO.Priority.values();
         String[] priorityNames = new String[priorities.length];
         for (int i = 0; i < priorities.length; i++) {
             priorityNames[i] = priorities[i].getName();
@@ -374,7 +374,7 @@ public class CustomerRequests extends ViewFrame {
     }
 
     private String[] getRequestTypes() {
-        CustomerRequest.Type[] types = CustomerRequest.Type.values();
+        CustomerRequestDTO.Type[] types = CustomerRequestDTO.Type.values();
         String[] typeNames = new String[types.length];
         for (int i = 0; i < types.length; i++) {
             typeNames[i] = types[i].getName();
@@ -383,7 +383,7 @@ public class CustomerRequests extends ViewFrame {
     }
 
     private String[] getRequestChannels() {
-        CustomerRequest.Channel[] channels = CustomerRequest.Channel.values();
+        CustomerRequestDTO.Channel[] channels = CustomerRequestDTO.Channel.values();
         String[] channelNames = new String[channels.length];
         for (int i = 0; i < channels.length; i++) {
             channelNames[i] = channels[i].getName();

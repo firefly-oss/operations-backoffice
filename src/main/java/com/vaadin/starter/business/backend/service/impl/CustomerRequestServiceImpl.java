@@ -1,24 +1,29 @@
 package com.vaadin.starter.business.backend.service.impl;
 
-import com.vaadin.starter.business.backend.CustomerRequest;
+import com.vaadin.starter.business.backend.dto.customerservice.CustomerRequestDTO;
 import com.vaadin.starter.business.backend.service.CustomerRequestService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 /**
  * Implementation of the CustomerRequestService interface.
+ * Provides mock data for demonstration purposes.
  */
 @Service
 public class CustomerRequestServiceImpl implements CustomerRequestService {
+
     private static final String[] SUBJECTS = {
-            "Request for account statement", "Change of address", "Update contact information",
-            "Request for product information", "Change payment method", "Request for document copy",
-            "Subscription upgrade request", "Account closure request", "Service plan change",
-            "Request for tax documents", "Password reset assistance", "Account access request"
+            "Account information update", "Statement request", "Address change",
+            "Card activation", "Transaction dispute", "Fee waiver request",
+            "Beneficiary addition", "Online banking access", "Loan information",
+            "Interest rate inquiry", "Account statement frequency", "Contact details update"
     };
     
     private static final String[] CUSTOMER_NAMES = {
@@ -33,20 +38,20 @@ public class CustomerRequestServiceImpl implements CustomerRequestService {
     };
     
     private static final String[] RESOLUTIONS = {
-            "Processed request as per customer instructions",
-            "Updated customer information in the system",
-            "Provided requested documents to customer",
-            "Changed service plan as requested",
-            "Processed account closure",
-            "Updated payment method in the system",
-            "Upgraded subscription as requested",
-            "Sent requested information to customer",
-            "Processed address change",
-            "Reset password and provided instructions to customer"
+            "Request completed as per customer instructions",
+            "Information provided to customer",
+            "Account updated as requested",
+            "Documents sent to customer",
+            "Changes applied to customer profile",
+            "Request processed successfully",
+            "Customer informed about policy",
+            "Request approved and processed",
+            "Request denied due to policy restrictions",
+            "Alternative solution provided to customer"
     };
 
     private final Random random = new Random();
-    private final List<CustomerRequest> customerRequests = new ArrayList<>();
+    private final Map<String, CustomerRequestDTO> customerRequests = new HashMap<>();
 
     public CustomerRequestServiceImpl() {
         generateMockCustomerRequests();
@@ -55,11 +60,11 @@ public class CustomerRequestServiceImpl implements CustomerRequestService {
     /**
      * Get all customer requests.
      *
-     * @return List of all customer requests
+     * @return Collection of all customer requests
      */
     @Override
-    public List<CustomerRequest> getCustomerRequests() {
-        return customerRequests;
+    public Collection<CustomerRequestDTO> getCustomerRequests() {
+        return customerRequests.values();
     }
 
     /**
@@ -69,11 +74,8 @@ public class CustomerRequestServiceImpl implements CustomerRequestService {
      * @return Customer request with the given ID, or null if not found
      */
     @Override
-    public CustomerRequest getCustomerRequestById(String id) {
-        return customerRequests.stream()
-                .filter(request -> request.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+    public CustomerRequestDTO getCustomerRequestById(String id) {
+        return customerRequests.get(id);
     }
 
     /**
@@ -85,35 +87,35 @@ public class CustomerRequestServiceImpl implements CustomerRequestService {
 
         // Generate 50 random customer requests
         for (int i = 0; i < 50; i++) {
-            CustomerRequest request = new CustomerRequest();
+            String id = UUID.randomUUID().toString().substring(0, 8);
             
             // Set request number
-            request.setRequestNumber("REQ-" + (10000 + i));
+            String requestNumber = "REQ-" + (10000 + i);
             
             // Set random subject
-            request.setSubject(SUBJECTS[random.nextInt(SUBJECTS.length)]);
+            String subject = SUBJECTS[random.nextInt(SUBJECTS.length)];
             
             // Set random description
-            request.setDescription("Detailed description for request: " + request.getSubject());
+            String description = "Detailed description for request: " + subject;
             
             // Set random status
-            CustomerRequest.Status[] statuses = CustomerRequest.Status.values();
-            request.setStatus(statuses[random.nextInt(statuses.length)].getName());
+            CustomerRequestDTO.Status[] statuses = CustomerRequestDTO.Status.values();
+            String status = statuses[random.nextInt(statuses.length)].getName();
             
             // Set random priority
-            CustomerRequest.Priority[] priorities = CustomerRequest.Priority.values();
-            request.setPriority(priorities[random.nextInt(priorities.length)].getName());
+            CustomerRequestDTO.Priority[] priorities = CustomerRequestDTO.Priority.values();
+            String priority = priorities[random.nextInt(priorities.length)].getName();
             
             // Set random type
-            CustomerRequest.Type[] types = CustomerRequest.Type.values();
-            request.setType(types[random.nextInt(types.length)].getName());
+            CustomerRequestDTO.Type[] types = CustomerRequestDTO.Type.values();
+            String type = types[random.nextInt(types.length)].getName();
             
             // Set random customer ID and name
-            request.setCustomerId("CUST-" + (1000 + random.nextInt(9000)));
-            request.setCustomerName(CUSTOMER_NAMES[random.nextInt(CUSTOMER_NAMES.length)]);
+            String customerId = "CUST-" + (1000 + random.nextInt(9000));
+            String customerName = CUSTOMER_NAMES[random.nextInt(CUSTOMER_NAMES.length)];
             
             // Set random assigned to
-            request.setAssignedTo(ASSIGNED_TO[random.nextInt(ASSIGNED_TO.length)]);
+            String assignedTo = ASSIGNED_TO[random.nextInt(ASSIGNED_TO.length)];
             
             // Set random created date (within the last 30 days)
             LocalDateTime now = LocalDateTime.now();
@@ -121,32 +123,34 @@ public class CustomerRequestServiceImpl implements CustomerRequestService {
             int hoursBack = random.nextInt(24);
             int minutesBack = random.nextInt(60);
             LocalDateTime createdDate = now.minusDays(daysBack).minusHours(hoursBack).minusMinutes(minutesBack);
-            request.setCreatedDate(createdDate);
             
-            // Set random last modified date (after created date)
+            // Set random last updated date (after created date)
             int daysAfter = random.nextInt(daysBack + 1);
             int hoursAfter = random.nextInt(24);
             int minutesAfter = random.nextInt(60);
-            LocalDateTime lastModifiedDate = createdDate.plusDays(daysAfter).plusHours(hoursAfter).plusMinutes(minutesAfter);
-            request.setLastModifiedDate(lastModifiedDate);
+            LocalDateTime lastUpdatedDate = createdDate.plusDays(daysAfter).plusHours(hoursAfter).plusMinutes(minutesAfter);
             
-            // Set random completion date (only for completed requests)
-            if (request.getStatus().equals(CustomerRequest.Status.COMPLETED.getName())) {
-                request.setCompletionDate(lastModifiedDate);
-            }
-            
-            // Set random resolution (only for completed or cancelled requests)
-            if (request.getStatus().equals(CustomerRequest.Status.COMPLETED.getName()) || 
-                request.getStatus().equals(CustomerRequest.Status.CANCELLED.getName())) {
-                request.setResolution(RESOLUTIONS[random.nextInt(RESOLUTIONS.length)]);
+            // Set random completion date and resolution (only for completed requests)
+            LocalDateTime completionDate = null;
+            String resolution = null;
+            if (status.equals(CustomerRequestDTO.Status.COMPLETED.getName())) {
+                completionDate = lastUpdatedDate;
+                resolution = RESOLUTIONS[random.nextInt(RESOLUTIONS.length)];
             }
             
             // Set random channel
-            CustomerRequest.Channel[] channels = CustomerRequest.Channel.values();
-            request.setChannel(channels[random.nextInt(channels.length)].getName());
+            CustomerRequestDTO.Channel[] channels = CustomerRequestDTO.Channel.values();
+            String channel = channels[random.nextInt(channels.length)].getName();
             
-            // Add to list
-            customerRequests.add(request);
+            // Create customer request DTO
+            CustomerRequestDTO request = new CustomerRequestDTO(
+                id, requestNumber, subject, description, status, priority, type,
+                customerId, customerName, assignedTo, createdDate, lastUpdatedDate,
+                completionDate, resolution, channel
+            );
+            
+            // Add to map
+            customerRequests.put(id, request);
         }
     }
 }

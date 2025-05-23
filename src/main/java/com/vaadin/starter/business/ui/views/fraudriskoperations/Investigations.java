@@ -16,6 +16,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.InvestigationDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -24,6 +26,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +39,7 @@ import java.util.Random;
 @Route(value = "fraud-risk/investigations", layout = MainLayout.class)
 public class Investigations extends ViewFrame {
 
+    private final FraudRiskOperationsService fraudRiskOperationsService;
     private Grid<Investigation> grid;
     private ListDataProvider<Investigation> dataProvider;
 
@@ -49,7 +53,9 @@ public class Investigations extends ViewFrame {
     private DatePicker openedDateFromFilter;
     private DatePicker openedDateToFilter;
 
-    public Investigations() {
+    @Autowired
+    public Investigations(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
         setViewContent(createContent());
     }
 
@@ -148,8 +154,8 @@ public class Investigations extends ViewFrame {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
-        // Initialize data provider with mock data
-        Collection<Investigation> investigations = generateMockData();
+        // Initialize data provider with data from service
+        Collection<Investigation> investigations = getInvestigationsFromService();
         dataProvider = new ListDataProvider<>(investigations);
         grid.setDataProvider(dataProvider);
 
@@ -380,76 +386,28 @@ public class Investigations extends ViewFrame {
         return new Badge(priority, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<Investigation> generateMockData() {
-        List<Investigation> investigations = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
+    private Collection<Investigation> getInvestigationsFromService() {
+        // Get investigations from the service
+        Collection<InvestigationDTO> investigationDTOs = fraudRiskOperationsService.getInvestigations();
 
-        String[] subjects = {
-            "Suspicious transaction pattern detected",
-            "Multiple account access from unusual locations",
-            "Potential identity theft case",
-            "Unusual wire transfer activity",
-            "Employee reported suspicious behavior",
-            "Potential money laundering scheme",
-            "Credit card fraud ring",
-            "Suspicious account opening documentation"
-        };
+        // Convert DTOs to view model objects
+        return investigationDTOs.stream()
+                .map(this::convertToViewModel)
+                .collect(java.util.stream.Collectors.toList());
+    }
 
-        String[] types = getInvestigationTypes();
-        String[] statuses = getStatuses();
-        String[] priorities = getPriorities();
-        String[] assignees = {
-            "John Smith", 
-            "Maria Rodriguez", 
-            "Wei Zhang", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
-
-        String[] descriptions = {
-            "Investigation into suspicious transaction patterns across multiple accounts",
-            "Review of potential identity theft based on customer complaint",
-            "Analysis of unusual login patterns from foreign IP addresses",
-            "Investigation of employee reported suspicious activity",
-            "Review of potential money laundering through structured deposits",
-            "Investigation of merchant processing unusual transaction volumes",
-            "Analysis of potential internal fraud by employee",
-            "Review of suspicious account opening documentation"
-        };
-
-        for (int i = 1; i <= 50; i++) {
-            Investigation investigation = new Investigation();
-            investigation.setCaseId("INV" + String.format("%06d", i));
-
-            investigation.setSubject(subjects[random.nextInt(subjects.length)]);
-            investigation.setType(types[random.nextInt(types.length)]);
-            investigation.setStatus(statuses[random.nextInt(statuses.length)]);
-            investigation.setPriority(priorities[random.nextInt(priorities.length)]);
-            investigation.setAssignedTo(assignees[random.nextInt(assignees.length)]);
-
-            // Generate a random opened date within the last 90 days
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime openedDate = now.minusDays(random.nextInt(90)).minusHours(random.nextInt(24));
-            investigation.setOpenedDate(openedDate);
-
-            // Generate a random last updated date between opened date and now
-            long openedEpochDay = openedDate.toLocalDate().toEpochDay();
-            long nowEpochDay = now.toLocalDate().toEpochDay();
-            long randomDay = openedEpochDay + random.nextInt((int) (nowEpochDay - openedEpochDay + 1));
-            investigation.setLastUpdated(LocalDateTime.of(
-                java.time.LocalDate.ofEpochDay(randomDay),
-                java.time.LocalTime.of(random.nextInt(24), random.nextInt(60))
-            ));
-
-            investigation.setDescription(descriptions[random.nextInt(descriptions.length)]);
-
-            investigations.add(investigation);
-        }
-
-        return investigations;
+    private Investigation convertToViewModel(InvestigationDTO dto) {
+        Investigation investigation = new Investigation();
+        investigation.setCaseId(dto.getCaseId());
+        investigation.setSubject(dto.getSubject());
+        investigation.setType(dto.getType());
+        investigation.setStatus(dto.getStatus());
+        investigation.setPriority(dto.getPriority());
+        investigation.setAssignedTo(dto.getAssignedTo());
+        investigation.setOpenedDate(dto.getOpenedDate());
+        investigation.setLastUpdated(dto.getLastUpdated());
+        investigation.setDescription(dto.getDescription());
+        return investigation;
     }
 
     // Inner class to represent an investigation

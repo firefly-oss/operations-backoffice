@@ -11,6 +11,10 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.transactions.PaymentMethodsDTO;
+import com.vaadin.starter.business.backend.dto.transactions.PaymentStatusSummaryDTO;
+import com.vaadin.starter.business.backend.dto.transactions.PaymentVolumeDTO;
+import com.vaadin.starter.business.backend.service.TransactionOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -27,6 +31,7 @@ import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.util.css.Display;
 import com.vaadin.starter.business.ui.util.css.Shadow;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle(NavigationConstants.PAYMENT_PROCESSING)
 @Route(value = "transactions/payment-processing", layout = MainLayout.class)
@@ -35,7 +40,11 @@ public class PaymentProcessing extends ViewFrame {
     private static final String CLASS_NAME = "payment-processing";
     public static final String MAX_WIDTH = "1024px";
 
-    public PaymentProcessing() {
+    private final TransactionOperationsService transactionOperationsService;
+
+    @Autowired
+    public PaymentProcessing(TransactionOperationsService transactionOperationsService) {
+        this.transactionOperationsService = transactionOperationsService;
         setViewContent(createContent());
     }
 
@@ -79,10 +88,10 @@ public class PaymentProcessing extends ViewFrame {
         UIUtils.setBorderRadius(BorderRadius.S, cards);
         UIUtils.setShadow(Shadow.XS, cards);
 
-        cards.add(createPaymentStatusCard("Pending", 24, "orange"));
-        cards.add(createPaymentStatusCard("Processing", 12, "blue"));
-        cards.add(createPaymentStatusCard("Completed", 156, "green"));
-        cards.add(createPaymentStatusCard("Failed", 8, "red"));
+        PaymentStatusSummaryDTO statusSummary = transactionOperationsService.getPaymentStatusSummary();
+        for (PaymentStatusSummaryDTO.PaymentStatusDTO status : statusSummary.getStatuses()) {
+            cards.add(createPaymentStatusCard(status.getStatus(), status.getCount(), status.getColor()));
+        }
 
         return cards;
     }
@@ -125,27 +134,22 @@ public class PaymentProcessing extends ViewFrame {
         conf.getChart().setStyledMode(true);
         conf.setTitle("Daily Payment Volume");
 
+        PaymentVolumeDTO volumeData = transactionOperationsService.getPaymentVolumeData();
+
         XAxis xAxis = new XAxis();
-        xAxis.setCategories("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+        xAxis.setCategories(volumeData.getCategories().toArray(new String[0]));
         conf.addxAxis(xAxis);
 
         YAxis yAxis = new YAxis();
         yAxis.setTitle("Number of Payments");
         conf.addyAxis(yAxis);
 
-        // Create series for different payment methods
-        ListSeries creditCard = new ListSeries("Credit Card");
-        creditCard.setData(45, 52, 48, 58, 63, 42, 30);
-
-        ListSeries bankTransfer = new ListSeries("Bank Transfer");
-        bankTransfer.setData(32, 38, 35, 40, 42, 28, 25);
-
-        ListSeries digitalWallet = new ListSeries("Digital Wallet");
-        digitalWallet.setData(18, 24, 22, 28, 32, 20, 15);
-
-        conf.addSeries(creditCard);
-        conf.addSeries(bankTransfer);
-        conf.addSeries(digitalWallet);
+        // Add series from the service data
+        for (PaymentVolumeDTO.SeriesData seriesData : volumeData.getSeries()) {
+            ListSeries series = new ListSeries(seriesData.getName());
+            series.setData(seriesData.getData().toArray(new Number[0]));
+            conf.addSeries(series);
+        }
 
         FlexBoxLayout card = new FlexBoxLayout(chart);
         card.setBackgroundColor(LumoStyles.Color.BASE_COLOR);
@@ -188,12 +192,12 @@ public class PaymentProcessing extends ViewFrame {
         plotOptions.setShowInLegend(true);
         conf.setPlotOptions(plotOptions);
 
+        PaymentMethodsDTO methodsData = transactionOperationsService.getPaymentMethodsData();
+
         DataSeries series = new DataSeries();
-        series.add(new DataSeriesItem("Credit Card", 45.0));
-        series.add(new DataSeriesItem("Bank Transfer", 30.0));
-        series.add(new DataSeriesItem("Digital Wallet", 15.0));
-        series.add(new DataSeriesItem("Mobile Payment", 8.0));
-        series.add(new DataSeriesItem("Other", 2.0));
+        for (PaymentMethodsDTO.PaymentMethodData methodData : methodsData.getMethodData()) {
+            series.add(new DataSeriesItem(methodData.getName(), methodData.getValue()));
+        }
         conf.addSeries(series);
 
         FlexBoxLayout card = new FlexBoxLayout(chart);

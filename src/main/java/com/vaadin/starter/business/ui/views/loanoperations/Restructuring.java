@@ -16,6 +16,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.loanoperations.LoanRestructuringDTO;
+import com.vaadin.starter.business.backend.service.LoanOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -28,6 +30,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -38,8 +41,16 @@ import java.util.List;
 @Route(value = "loan-operations/restructuring", layout = MainLayout.class)
 public class Restructuring extends ViewFrame {
 
-    private Grid<RestructuringRequest> grid;
-    private ListDataProvider<RestructuringRequest> dataProvider;
+    private Grid<LoanRestructuringDTO> grid;
+    private ListDataProvider<LoanRestructuringDTO> dataProvider;
+
+    private final LoanOperationsService loanOperationsService;
+
+    @Autowired
+    public Restructuring(LoanOperationsService loanOperationsService) {
+        this.loanOperationsService = loanOperationsService;
+        setViewContent(createContent());
+    }
 
     // Filter form fields
     private TextField requestIdFilter;
@@ -51,9 +62,6 @@ public class Restructuring extends ViewFrame {
     private DatePicker requestDateToFilter;
     private TextField assignedToFilter;
 
-    public Restructuring() {
-        setViewContent(createContent());
-    }
 
     private Component createContent() {
         FlexBoxLayout content = new FlexBoxLayout(createFilterForm(), createGrid());
@@ -135,11 +143,11 @@ public class Restructuring extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<RestructuringRequest> createGrid() {
+    private Grid<LoanRestructuringDTO> createGrid() {
         grid = new Grid<>();
 
-        // Initialize with dummy data
-        Collection<RestructuringRequest> requests = getDummyRequests();
+        // Initialize with data from service
+        Collection<LoanRestructuringDTO> requests = loanOperationsService.getLoanRestructurings();
         dataProvider = new ListDataProvider<>(requests);
         grid.setDataProvider(dataProvider);
 
@@ -147,51 +155,51 @@ public class Restructuring extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(RestructuringRequest::getRequestId)
+        grid.addColumn(LoanRestructuringDTO::getRequestId)
                 .setHeader("Request ID")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(RestructuringRequest::getLoanId)
+        grid.addColumn(LoanRestructuringDTO::getLoanId)
                 .setHeader("Loan ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(RestructuringRequest::getCustomerName)
+        grid.addColumn(LoanRestructuringDTO::getCustomerName)
                 .setHeader("Customer Name")
                 .setSortable(true)
                 .setWidth("200px");
-        grid.addColumn(RestructuringRequest::getType)
+        grid.addColumn(LoanRestructuringDTO::getType)
                 .setHeader("Type")
                 .setSortable(true)
                 .setWidth("180px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(RestructuringRequest::getStatus)
+                .setComparator(LoanRestructuringDTO::getStatus)
                 .setWidth("120px");
-        grid.addColumn(new LocalDateRenderer<>(RestructuringRequest::getRequestDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanRestructuringDTO::getRequestDate, "MMM dd, YYYY"))
                 .setHeader("Request Date")
                 .setSortable(true)
-                .setComparator(RestructuringRequest::getRequestDate)
+                .setComparator(LoanRestructuringDTO::getRequestDate)
                 .setWidth("150px");
-        grid.addColumn(RestructuringRequest::getAssignedTo)
+        grid.addColumn(LoanRestructuringDTO::getAssignedTo)
                 .setHeader("Assigned To")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(RestructuringRequest::getDecisionDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanRestructuringDTO::getDecisionDate, "MMM dd, YYYY"))
                 .setHeader("Decision Date")
                 .setSortable(true)
-                .setComparator(RestructuringRequest::getDecisionDate)
+                .setComparator(LoanRestructuringDTO::getDecisionDate)
                 .setWidth("150px");
 
         // Add action buttons
         grid.addComponentColumn(request -> {
             HorizontalLayout actions = new HorizontalLayout();
-            
+
             Button viewButton = UIUtils.createSmallButton("View");
             viewButton.addClickListener(e -> {
                 // View request details logic would go here
             });
-            
+
             Button processButton = UIUtils.createSmallButton("Process");
             if (request.getStatus().equals("New") || request.getStatus().equals("Under Review")) {
                 processButton.addClickListener(e -> {
@@ -201,17 +209,17 @@ public class Restructuring extends ViewFrame {
             } else {
                 actions.add(viewButton);
             }
-            
+
             return actions;
         }).setHeader("Actions").setWidth("150px");
 
         return grid;
     }
 
-    private Component createStatusBadge(RestructuringRequest request) {
+    private Component createStatusBadge(LoanRestructuringDTO request) {
         String status = request.getStatus();
         BadgeColor color;
-        
+
         switch (status) {
             case "Approved":
                 color = BadgeColor.SUCCESS;
@@ -228,7 +236,7 @@ public class Restructuring extends ViewFrame {
             default:
                 color = BadgeColor.NORMAL;
         }
-        
+
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
@@ -315,109 +323,4 @@ public class Restructuring extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<RestructuringRequest> getDummyRequests() {
-        List<RestructuringRequest> requests = new ArrayList<>();
-        
-        requests.add(new RestructuringRequest("RR001", "LA003", "Robert Johnson", "Term Extension", "New", LocalDate.now().minusDays(2), "John Analyst", null));
-        requests.add(new RestructuringRequest("RR002", "LA005", "Michael Brown", "Interest Rate Reduction", "Approved", LocalDate.now().minusDays(15), "Sarah Manager", LocalDate.now().minusDays(10)));
-        requests.add(new RestructuringRequest("RR003", "LA006", "Sarah Davis", "Payment Holiday", "Under Review", LocalDate.now().minusDays(5), "John Analyst", null));
-        requests.add(new RestructuringRequest("RR004", "LA010", "Lisa Martinez", "Debt Consolidation", "Rejected", LocalDate.now().minusDays(20), "Mark Supervisor", LocalDate.now().minusDays(15)));
-        requests.add(new RestructuringRequest("RR005", "LA007", "David Miller", "Principal Reduction", "Implemented", LocalDate.now().minusDays(30), "Sarah Manager", LocalDate.now().minusDays(25)));
-        requests.add(new RestructuringRequest("RR006", "LA001", "John Smith", "Term Extension", "New", LocalDate.now().minusDays(1), null, null));
-        requests.add(new RestructuringRequest("RR007", "LA008", "Jennifer Garcia", "Interest Rate Reduction", "Under Review", LocalDate.now().minusDays(7), "Mark Supervisor", null));
-        requests.add(new RestructuringRequest("RR008", "LA004", "Emily Wilson", "Payment Holiday", "Approved", LocalDate.now().minusDays(12), "John Analyst", LocalDate.now().minusDays(8)));
-        requests.add(new RestructuringRequest("RR009", "LA009", "James Rodriguez", "Debt Consolidation", "New", LocalDate.now(), null, null));
-        requests.add(new RestructuringRequest("RR010", "LA002", "Jane Doe", "Principal Reduction", "Implemented", LocalDate.now().minusDays(25), "Sarah Manager", LocalDate.now().minusDays(20)));
-        
-        return requests;
-    }
-
-    // Restructuring Request class for demonstration
-    public static class RestructuringRequest {
-        private String requestId;
-        private String loanId;
-        private String customerName;
-        private String type;
-        private String status;
-        private LocalDate requestDate;
-        private String assignedTo;
-        private LocalDate decisionDate;
-
-        public RestructuringRequest(String requestId, String loanId, String customerName, String type,
-                                   String status, LocalDate requestDate, String assignedTo, LocalDate decisionDate) {
-            this.requestId = requestId;
-            this.loanId = loanId;
-            this.customerName = customerName;
-            this.type = type;
-            this.status = status;
-            this.requestDate = requestDate;
-            this.assignedTo = assignedTo;
-            this.decisionDate = decisionDate;
-        }
-
-        public String getRequestId() {
-            return requestId;
-        }
-
-        public void setRequestId(String requestId) {
-            this.requestId = requestId;
-        }
-
-        public String getLoanId() {
-            return loanId;
-        }
-
-        public void setLoanId(String loanId) {
-            this.loanId = loanId;
-        }
-
-        public String getCustomerName() {
-            return customerName;
-        }
-
-        public void setCustomerName(String customerName) {
-            this.customerName = customerName;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public LocalDate getRequestDate() {
-            return requestDate;
-        }
-
-        public void setRequestDate(LocalDate requestDate) {
-            this.requestDate = requestDate;
-        }
-
-        public String getAssignedTo() {
-            return assignedTo;
-        }
-
-        public void setAssignedTo(String assignedTo) {
-            this.assignedTo = assignedTo;
-        }
-
-        public LocalDate getDecisionDate() {
-            return decisionDate;
-        }
-
-        public void setDecisionDate(LocalDate decisionDate) {
-            this.decisionDate = decisionDate;
-        }
-    }
 }

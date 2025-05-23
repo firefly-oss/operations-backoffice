@@ -16,6 +16,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.AmlKycCaseDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -24,6 +26,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,11 +34,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @PageTitle(NavigationConstants.AML_KYC_CASES)
 @Route(value = "fraud-risk/aml-kyc", layout = MainLayout.class)
 public class AmlKycCases extends ViewFrame {
 
+    private final FraudRiskOperationsService fraudRiskOperationsService;
     private Grid<AmlKycCase> grid;
     private ListDataProvider<AmlKycCase> dataProvider;
 
@@ -51,7 +56,9 @@ public class AmlKycCases extends ViewFrame {
     private DatePicker createdDateToFilter;
     private ComboBox<String> regulatoryBodyFilter;
 
-    public AmlKycCases() {
+    @Autowired
+    public AmlKycCases(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
         setViewContent(createContent());
     }
 
@@ -160,8 +167,8 @@ public class AmlKycCases extends ViewFrame {
         grid = new Grid<>();
         grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
 
-        // Initialize data provider with mock data
-        Collection<AmlKycCase> cases = generateMockData();
+        // Initialize data provider with data from service
+        Collection<AmlKycCase> cases = getAmlKycCasesFromService();
         dataProvider = new ListDataProvider<>(cases);
         grid.setDataProvider(dataProvider);
 
@@ -429,80 +436,30 @@ public class AmlKycCases extends ViewFrame {
         return new Badge(riskLevel, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<AmlKycCase> generateMockData() {
-        List<AmlKycCase> cases = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
+    private Collection<AmlKycCase> getAmlKycCasesFromService() {
+        // Get AML/KYC cases from the service
+        Collection<AmlKycCaseDTO> caseDTOs = fraudRiskOperationsService.getAmlKycCases();
 
-        String[] customerIds = {"C10045", "C20056", "C30078", "C40023", "C50091", "C60112", "C70134", "C80156"};
-        String[] customerNames = {
-            "John Smith", 
-            "Maria Garcia", 
-            "Wei Chen", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
+        // Convert DTOs to view model objects
+        return caseDTOs.stream()
+                .map(this::convertToViewModel)
+                .collect(Collectors.toList());
+    }
 
-        String[] caseTypes = getCaseTypes();
-        String[] statuses = getStatuses();
-        String[] riskLevels = getRiskLevels();
-        String[] assignees = {
-            "John Smith", 
-            "Maria Rodriguez", 
-            "Wei Zhang", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Olivia Wilson",
-            "Michael Brown",
-            "Fatima Al-Farsi"
-        };
-
-        String[] regulatoryBodies = getRegulatoryBodies();
-
-        String[] notes = {
-            "Customer documentation incomplete, follow-up required",
-            "Unusual transaction patterns detected, further investigation needed",
-            "PEP status confirmed, enhanced due diligence in progress",
-            "Sanctions screening alert, verification in progress",
-            "Periodic review due to high-risk jurisdiction",
-            "Missing source of funds documentation",
-            "Suspicious activity report filed with authorities",
-            "Beneficial ownership structure requires clarification"
-        };
-
-        for (int i = 1; i <= 50; i++) {
-            AmlKycCase amlCase = new AmlKycCase();
-            amlCase.setCaseId("AML" + String.format("%06d", i));
-
-            int customerIndex = random.nextInt(customerIds.length);
-            amlCase.setCustomerId(customerIds[customerIndex]);
-            amlCase.setCustomerName(customerNames[customerIndex]);
-
-            amlCase.setCaseType(caseTypes[random.nextInt(caseTypes.length)]);
-            amlCase.setStatus(statuses[random.nextInt(statuses.length)]);
-            amlCase.setRiskLevel(riskLevels[random.nextInt(riskLevels.length)]);
-            amlCase.setAssignedTo(assignees[random.nextInt(assignees.length)]);
-
-            // Generate a random created date within the last 180 days
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime createdDate = now.minusDays(random.nextInt(180)).minusHours(random.nextInt(24));
-            amlCase.setCreatedDate(createdDate);
-
-            // Generate a random due date between created date and 30 days in the future
-            long createdEpochDay = createdDate.toLocalDate().toEpochDay();
-            long futureEpochDay = now.plusDays(30).toLocalDate().toEpochDay();
-            long randomDay = createdEpochDay + random.nextInt((int) (futureEpochDay - createdEpochDay + 1));
-            amlCase.setDueDate(java.time.LocalDate.ofEpochDay(randomDay));
-
-            amlCase.setRegulatoryBody(regulatoryBodies[random.nextInt(regulatoryBodies.length)]);
-            amlCase.setNotes(notes[random.nextInt(notes.length)]);
-
-            cases.add(amlCase);
-        }
-
-        return cases;
+    private AmlKycCase convertToViewModel(AmlKycCaseDTO dto) {
+        AmlKycCase amlCase = new AmlKycCase();
+        amlCase.setCaseId(dto.getCaseId());
+        amlCase.setCustomerId(dto.getCustomerId());
+        amlCase.setCustomerName(dto.getCustomerName());
+        amlCase.setCaseType(dto.getCaseType());
+        amlCase.setStatus(dto.getStatus());
+        amlCase.setRiskLevel(dto.getRiskLevel());
+        amlCase.setAssignedTo(dto.getAssignedTo());
+        amlCase.setCreatedDate(dto.getCreatedDate());
+        amlCase.setDueDate(dto.getDueDate());
+        amlCase.setRegulatoryBody(dto.getRegulatoryBody());
+        amlCase.setNotes(dto.getNotes());
+        return amlCase;
     }
 
     // Inner class to represent an AML/KYC case

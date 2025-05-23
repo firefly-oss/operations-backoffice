@@ -21,6 +21,8 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.reportinganalytics.PerformanceMetricDTO;
+import com.vaadin.starter.business.backend.service.ReportingAnalyticsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -29,23 +31,40 @@ import com.vaadin.starter.business.ui.layout.size.Top;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.util.css.BoxSizing;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @PageTitle(NavigationConstants.PERFORMANCE_ANALYTICS)
 @Route(value = "reporting-analytics/performance-analytics", layout = MainLayout.class)
 public class PerformanceAnalytics extends ViewFrame {
 
+    private final ReportingAnalyticsService reportingAnalyticsService;
     private Div contentArea;
     private Random random = new Random(42); // Fixed seed for reproducible data
+    private Map<String, PerformanceMetricDTO> metricsCache = new HashMap<>();
 
-    public PerformanceAnalytics() {
+    @Autowired
+    public PerformanceAnalytics(ReportingAnalyticsService reportingAnalyticsService) {
+        this.reportingAnalyticsService = reportingAnalyticsService;
+        loadMetricsFromService();
         setViewContent(createContent());
+    }
+
+    private void loadMetricsFromService() {
+        // Load metrics from service and cache them for use in various charts
+        Collection<PerformanceMetricDTO> metrics = reportingAnalyticsService.getPerformanceMetrics();
+        metricsCache = metrics.stream()
+                .collect(Collectors.toMap(PerformanceMetricDTO::getMetricId, metric -> metric));
     }
 
     private Component createContent() {
@@ -342,6 +361,16 @@ public class PerformanceAnalytics extends ViewFrame {
     }
 
     private Component createMetricCard(String title, String value, String change, String changeColor) {
+        // Try to get metric data from service
+        PerformanceMetricDTO metric = getMetricByName(title);
+
+        if (metric != null) {
+            value = metric.getValue() + (metric.getUnit() != null ? " " + metric.getUnit() : "");
+            change = metric.getChange();
+            changeColor = "up".equals(metric.getChangeDirection()) ? 
+                "var(--lumo-success-color)" : "var(--lumo-error-color)";
+        }
+
         Div card = new Div();
         card.getStyle().set("background-color", "var(--lumo-base-color)");
         card.getStyle().set("border-radius", "var(--lumo-border-radius)");
@@ -746,10 +775,28 @@ public class PerformanceAnalytics extends ViewFrame {
     }
 
     private Number[] generateRandomData(int count, double min, double max) {
+        // First check if we have data from the service
+        if (!metricsCache.isEmpty()) {
+            // Try to find a metric with historical data of the right size
+            for (PerformanceMetricDTO metric : metricsCache.values()) {
+                if (metric.getHistoricalData() != null && metric.getHistoricalData().length == count) {
+                    return metric.getHistoricalData();
+                }
+            }
+        }
+
+        // Fall back to random data if no suitable metric data is found
         Number[] data = new Number[count];
         for (int i = 0; i < count; i++) {
             data[i] = min + (random.nextDouble() * (max - min));
         }
         return data;
+    }
+
+    private PerformanceMetricDTO getMetricByName(String metricName) {
+        return metricsCache.values().stream()
+                .filter(metric -> metric.getMetricName().equals(metricName))
+                .findFirst()
+                .orElse(null);
     }
 }

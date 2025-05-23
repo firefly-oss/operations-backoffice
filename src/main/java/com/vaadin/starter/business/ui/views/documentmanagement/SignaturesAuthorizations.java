@@ -20,6 +20,11 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.documentmanagement.AuthorizationDTO;
+import com.vaadin.starter.business.backend.dto.documentmanagement.SignatureDTO;
+import com.vaadin.starter.business.backend.mapper.AuthorizationMapper;
+import com.vaadin.starter.business.backend.mapper.SignatureMapper;
+import com.vaadin.starter.business.backend.service.DocumentService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -39,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle(NavigationConstants.SIGNATURES_AUTHORIZATIONS)
 @Route(value = "document-management/signatures-authorizations", layout = MainLayout.class)
@@ -50,7 +56,15 @@ public class SignaturesAuthorizations extends ViewFrame {
     private ListDataProvider<Authorization> authorizationsDataProvider;
     private Div contentArea;
 
-    public SignaturesAuthorizations() {
+    private final DocumentService documentService;
+    private final SignatureMapper signatureMapper;
+    private final AuthorizationMapper authorizationMapper;
+
+    @Autowired
+    public SignaturesAuthorizations(DocumentService documentService, SignatureMapper signatureMapper, AuthorizationMapper authorizationMapper) {
+        this.documentService = documentService;
+        this.signatureMapper = signatureMapper;
+        this.authorizationMapper = authorizationMapper;
         setViewContent(createContent());
     }
 
@@ -397,8 +411,9 @@ public class SignaturesAuthorizations extends ViewFrame {
     private Grid<Signature> createSignaturesGrid() {
         Grid<Signature> grid = new Grid<>();
 
-        // Initialize data provider with mock data
-        Collection<Signature> signatures = generateMockSignatures();
+        // Initialize data provider with data from service
+        Collection<SignatureDTO> signaturesDTO = documentService.getSignatures();
+        Collection<Signature> signatures = signatureMapper.toEntityList(signaturesDTO);
         signaturesDataProvider = new ListDataProvider<>(signatures);
         grid.setDataProvider(signaturesDataProvider);
 
@@ -462,8 +477,9 @@ public class SignaturesAuthorizations extends ViewFrame {
     private Grid<Authorization> createAuthorizationsGrid() {
         Grid<Authorization> grid = new Grid<>();
 
-        // Initialize data provider with mock data
-        Collection<Authorization> authorizations = generateMockAuthorizations();
+        // Initialize data provider with data from service
+        Collection<AuthorizationDTO> authorizationsDTO = documentService.getAuthorizations();
+        Collection<Authorization> authorizations = authorizationMapper.toEntityList(authorizationsDTO);
         authorizationsDataProvider = new ListDataProvider<>(authorizations);
         grid.setDataProvider(authorizationsDataProvider);
 

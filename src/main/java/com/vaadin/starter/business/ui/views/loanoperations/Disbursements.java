@@ -18,6 +18,8 @@ import com.vaadin.flow.data.renderer.LocalDateRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.loanoperations.LoanDisbursementDTO;
+import com.vaadin.starter.business.backend.service.LoanOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -30,6 +32,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,8 +43,16 @@ import java.util.List;
 @Route(value = "loan-operations/disbursements", layout = MainLayout.class)
 public class Disbursements extends ViewFrame {
 
-    private Grid<Disbursement> grid;
-    private ListDataProvider<Disbursement> dataProvider;
+    private Grid<LoanDisbursementDTO> grid;
+    private ListDataProvider<LoanDisbursementDTO> dataProvider;
+
+    private final LoanOperationsService loanOperationsService;
+
+    @Autowired
+    public Disbursements(LoanOperationsService loanOperationsService) {
+        this.loanOperationsService = loanOperationsService;
+        setViewContent(createContent());
+    }
 
     // Filter form fields
     private TextField disbursementIdFilter;
@@ -54,9 +65,6 @@ public class Disbursements extends ViewFrame {
     private DatePicker scheduledDateToFilter;
     private ComboBox<String> disbursementMethodFilter;
 
-    public Disbursements() {
-        setViewContent(createContent());
-    }
 
     private Component createContent() {
         FlexBoxLayout content = new FlexBoxLayout(createFilterForm(), createGrid());
@@ -141,11 +149,11 @@ public class Disbursements extends ViewFrame {
         return formContainer;
     }
 
-    private Grid<Disbursement> createGrid() {
+    private Grid<LoanDisbursementDTO> createGrid() {
         grid = new Grid<>();
 
-        // Initialize with dummy data
-        Collection<Disbursement> disbursements = getDummyDisbursements();
+        // Initialize with data from service
+        Collection<LoanDisbursementDTO> disbursements = loanOperationsService.getLoanDisbursements();
         dataProvider = new ListDataProvider<>(disbursements);
         grid.setDataProvider(dataProvider);
 
@@ -153,52 +161,52 @@ public class Disbursements extends ViewFrame {
         grid.setSizeFull();
 
         // Add columns
-        grid.addColumn(Disbursement::getDisbursementId)
+        grid.addColumn(LoanDisbursementDTO::getDisbursementId)
                 .setHeader("Disbursement ID")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(Disbursement::getLoanId)
+        grid.addColumn(LoanDisbursementDTO::getLoanId)
                 .setHeader("Loan ID")
                 .setSortable(true)
                 .setWidth("120px");
-        grid.addColumn(Disbursement::getCustomerName)
+        grid.addColumn(LoanDisbursementDTO::getCustomerName)
                 .setHeader("Customer Name")
                 .setSortable(true)
                 .setWidth("200px");
         grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
                 .setHeader("Status")
                 .setSortable(true)
-                .setComparator(Disbursement::getStatus)
+                .setComparator(LoanDisbursementDTO::getStatus)
                 .setWidth("120px");
         grid.addColumn(new ComponentRenderer<>(this::createAmountComponent))
                 .setHeader("Amount ($)")
                 .setSortable(true)
-                .setComparator(Disbursement::getAmount)
+                .setComparator(LoanDisbursementDTO::getAmount)
                 .setWidth("120px");
-        grid.addColumn(Disbursement::getDisbursementMethod)
+        grid.addColumn(LoanDisbursementDTO::getDisbursementMethod)
                 .setHeader("Method")
                 .setSortable(true)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(Disbursement::getScheduledDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanDisbursementDTO::getScheduledDate, "MMM dd, YYYY"))
                 .setHeader("Scheduled Date")
                 .setSortable(true)
-                .setComparator(Disbursement::getScheduledDate)
+                .setComparator(LoanDisbursementDTO::getScheduledDate)
                 .setWidth("150px");
-        grid.addColumn(new LocalDateRenderer<>(Disbursement::getProcessedDate, "MMM dd, YYYY"))
+        grid.addColumn(new LocalDateRenderer<>(LoanDisbursementDTO::getProcessedDate, "MMM dd, YYYY"))
                 .setHeader("Processed Date")
                 .setSortable(true)
-                .setComparator(Disbursement::getProcessedDate)
+                .setComparator(LoanDisbursementDTO::getProcessedDate)
                 .setWidth("150px");
 
         // Add action buttons
         grid.addComponentColumn(disbursement -> {
             HorizontalLayout actions = new HorizontalLayout();
-            
+
             Button viewButton = UIUtils.createSmallButton("View");
             viewButton.addClickListener(e -> {
                 // View disbursement details logic would go here
             });
-            
+
             Button processButton = UIUtils.createSmallButton("Process");
             if (disbursement.getStatus().equals("Scheduled")) {
                 processButton.addClickListener(e -> {
@@ -208,17 +216,17 @@ public class Disbursements extends ViewFrame {
             } else {
                 actions.add(viewButton);
             }
-            
+
             return actions;
         }).setHeader("Actions").setWidth("150px");
 
         return grid;
     }
 
-    private Component createStatusBadge(Disbursement disbursement) {
+    private Component createStatusBadge(LoanDisbursementDTO disbursement) {
         String status = disbursement.getStatus();
         BadgeColor color;
-        
+
         switch (status) {
             case "Processed":
                 color = BadgeColor.SUCCESS;
@@ -235,11 +243,11 @@ public class Disbursements extends ViewFrame {
             default:
                 color = BadgeColor.NORMAL;
         }
-        
+
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Component createAmountComponent(Disbursement disbursement) {
+    private Component createAmountComponent(LoanDisbursementDTO disbursement) {
         Double amount = disbursement.getAmount();
         Span amountSpan = new Span(UIUtils.formatAmount(amount));
         return amountSpan;
@@ -337,109 +345,4 @@ public class Disbursements extends ViewFrame {
         dataProvider.clearFilters();
     }
 
-    // Dummy data for demonstration
-    private Collection<Disbursement> getDummyDisbursements() {
-        List<Disbursement> disbursements = new ArrayList<>();
-        
-        disbursements.add(new Disbursement("D001", "LA002", "Jane Doe", "Scheduled", 350000.0, "Bank Transfer", LocalDate.now().plusDays(2), null));
-        disbursements.add(new Disbursement("D002", "LA008", "Jennifer Garcia", "Processed", 35000.0, "Bank Transfer", LocalDate.now().minusDays(5), LocalDate.now().minusDays(3)));
-        disbursements.add(new Disbursement("D003", "LA003", "Robert Johnson", "Scheduled", 45000.0, "Check", LocalDate.now().plusDays(1), null));
-        disbursements.add(new Disbursement("D004", "LA005", "Michael Brown", "Cancelled", 150000.0, "Bank Transfer", LocalDate.now().minusDays(10), null));
-        disbursements.add(new Disbursement("D005", "LA001", "John Smith", "Scheduled", 25000.0, "Digital Wallet", LocalDate.now().plusDays(3), null));
-        disbursements.add(new Disbursement("D006", "LA007", "David Miller", "Processed", 275000.0, "Bank Transfer", LocalDate.now().minusDays(7), LocalDate.now().minusDays(6)));
-        disbursements.add(new Disbursement("D007", "LA006", "Sarah Davis", "Failed", 15000.0, "Bank Transfer", LocalDate.now().minusDays(4), LocalDate.now().minusDays(4)));
-        disbursements.add(new Disbursement("D008", "LA010", "Lisa Martinez", "Scheduled", 50000.0, "Check", LocalDate.now().plusDays(5), null));
-        disbursements.add(new Disbursement("D009", "LA004", "Emily Wilson", "Processed", 75000.0, "Bank Transfer", LocalDate.now().minusDays(2), LocalDate.now().minusDays(1)));
-        disbursements.add(new Disbursement("D010", "LA009", "James Rodriguez", "Scheduled", 200000.0, "Digital Wallet", LocalDate.now().plusDays(4), null));
-        
-        return disbursements;
-    }
-
-    // Disbursement class for demonstration
-    public static class Disbursement {
-        private String disbursementId;
-        private String loanId;
-        private String customerName;
-        private String status;
-        private Double amount;
-        private String disbursementMethod;
-        private LocalDate scheduledDate;
-        private LocalDate processedDate;
-
-        public Disbursement(String disbursementId, String loanId, String customerName, String status,
-                           Double amount, String disbursementMethod, LocalDate scheduledDate, LocalDate processedDate) {
-            this.disbursementId = disbursementId;
-            this.loanId = loanId;
-            this.customerName = customerName;
-            this.status = status;
-            this.amount = amount;
-            this.disbursementMethod = disbursementMethod;
-            this.scheduledDate = scheduledDate;
-            this.processedDate = processedDate;
-        }
-
-        public String getDisbursementId() {
-            return disbursementId;
-        }
-
-        public void setDisbursementId(String disbursementId) {
-            this.disbursementId = disbursementId;
-        }
-
-        public String getLoanId() {
-            return loanId;
-        }
-
-        public void setLoanId(String loanId) {
-            this.loanId = loanId;
-        }
-
-        public String getCustomerName() {
-            return customerName;
-        }
-
-        public void setCustomerName(String customerName) {
-            this.customerName = customerName;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public Double getAmount() {
-            return amount;
-        }
-
-        public void setAmount(Double amount) {
-            this.amount = amount;
-        }
-
-        public String getDisbursementMethod() {
-            return disbursementMethod;
-        }
-
-        public void setDisbursementMethod(String disbursementMethod) {
-            this.disbursementMethod = disbursementMethod;
-        }
-
-        public LocalDate getScheduledDate() {
-            return scheduledDate;
-        }
-
-        public void setScheduledDate(LocalDate scheduledDate) {
-            this.scheduledDate = scheduledDate;
-        }
-
-        public LocalDate getProcessedDate() {
-            return processedDate;
-        }
-
-        public void setProcessedDate(LocalDate processedDate) {
-            this.processedDate = processedDate;
-        }
-    }
 }

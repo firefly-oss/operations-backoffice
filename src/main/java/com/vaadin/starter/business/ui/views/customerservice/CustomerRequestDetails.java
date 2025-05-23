@@ -9,7 +9,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.starter.business.backend.CustomerRequest;
+import com.vaadin.starter.business.backend.dto.customerservice.CustomerRequestDTO;
 import com.vaadin.starter.business.backend.service.CustomerRequestService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -46,7 +46,7 @@ public class CustomerRequestDetails extends ViewFrame implements HasUrlParameter
     private ListItem channel;
     private ListItem description;
 
-    private CustomerRequest customerRequest;
+    private CustomerRequestDTO customerRequest;
     private final CustomerRequestService customerRequestService;
 
     @Autowired
@@ -193,8 +193,8 @@ public class CustomerRequestDetails extends ViewFrame implements HasUrlParameter
                 createdDate.setPrimaryText(customerRequest.getCreatedDate().format(formatter));
             }
 
-            if (customerRequest.getLastModifiedDate() != null) {
-                lastModifiedDate.setPrimaryText(customerRequest.getLastModifiedDate().format(formatter));
+            if (customerRequest.getLastUpdatedDate() != null) {
+                lastModifiedDate.setPrimaryText(customerRequest.getLastUpdatedDate().format(formatter));
             }
 
             if (customerRequest.getCompletionDate() != null) {

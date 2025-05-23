@@ -21,6 +21,8 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.reportinganalytics.ComplianceReportDTO;
+import com.vaadin.starter.business.backend.service.ReportingAnalyticsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -33,6 +35,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
 import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,16 +43,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @PageTitle(NavigationConstants.COMPLIANCE_REPORTING)
 @Route(value = "reporting-analytics/compliance-reporting", layout = MainLayout.class)
 public class ComplianceReporting extends ViewFrame {
 
+    private final ReportingAnalyticsService reportingAnalyticsService;
     private Grid<ComplianceReport> reportsGrid;
     private ListDataProvider<ComplianceReport> reportsDataProvider;
     private Div contentArea;
 
-    public ComplianceReporting() {
+    @Autowired
+    public ComplianceReporting(ReportingAnalyticsService reportingAnalyticsService) {
+        this.reportingAnalyticsService = reportingAnalyticsService;
         setViewContent(createContent());
     }
 
@@ -127,7 +134,7 @@ public class ComplianceReporting extends ViewFrame {
         scheduleReportButton.setIcon(VaadinIcon.CALENDAR_CLOCK.create());
         Button exportReportButton = UIUtils.createTertiaryButton("Export Report");
         exportReportButton.setIcon(VaadinIcon.EXTERNAL_LINK.create());
-        
+
         actionButtons.add(generateReportButton, scheduleReportButton, exportReportButton);
         actionButtons.setSpacing(true);
         regulatoryLayout.add(actionButtons);
@@ -143,32 +150,32 @@ public class ComplianceReporting extends ViewFrame {
 
         // Create internal compliance dashboard
         H4 dashboardTitle = new H4("Internal Compliance Dashboard");
-        
+
         // Create compliance metrics cards
         HorizontalLayout metricsLayout = new HorizontalLayout();
         metricsLayout.setWidthFull();
         metricsLayout.setSpacing(true);
-        
+
         metricsLayout.add(createMetricCard("Policy Compliance", "94%", "2% ↑", BadgeColor.SUCCESS));
         metricsLayout.add(createMetricCard("Training Completion", "87%", "5% ↑", BadgeColor.SUCCESS));
         metricsLayout.add(createMetricCard("Risk Assessment", "76%", "3% ↓", BadgeColor.ERROR));
         metricsLayout.add(createMetricCard("Control Effectiveness", "82%", "1% ↑", BadgeColor.SUCCESS));
-        
+
         // Create compliance issues section
         H4 issuesTitle = new H4("Open Compliance Issues");
-        
+
         Grid<ComplianceIssue> issuesGrid = createIssuesGrid();
-        
+
         // Add action buttons
         HorizontalLayout actionButtons = new HorizontalLayout();
         Button addIssueButton = UIUtils.createPrimaryButton("Add Issue");
         Button exportIssuesButton = UIUtils.createTertiaryButton("Export Issues");
         actionButtons.add(addIssueButton, exportIssuesButton);
         actionButtons.setSpacing(true);
-        
+
         internalLayout.add(dashboardTitle, metricsLayout, issuesTitle, issuesGrid, actionButtons);
         internalLayout.expand(issuesGrid);
-        
+
         contentArea.add(internalLayout);
     }
 
@@ -180,14 +187,14 @@ public class ComplianceReporting extends ViewFrame {
 
         // Create audit preparation checklist
         H4 checklistTitle = new H4("Audit Preparation Checklist");
-        
+
         Grid<AuditTask> auditTasksGrid = createAuditTasksGrid();
-        
+
         // Create document repository section
         H4 documentsTitle = new H4("Document Repository");
-        
+
         Grid<ComplianceDocument> documentsGrid = createDocumentsGrid();
-        
+
         // Add action buttons
         HorizontalLayout actionButtons = new HorizontalLayout();
         Button uploadDocumentButton = UIUtils.createPrimaryButton("Upload Document");
@@ -196,10 +203,10 @@ public class ComplianceReporting extends ViewFrame {
         prepareAuditPackageButton.setIcon(VaadinIcon.PACKAGE.create());
         actionButtons.add(uploadDocumentButton, prepareAuditPackageButton);
         actionButtons.setSpacing(true);
-        
+
         auditLayout.add(checklistTitle, auditTasksGrid, documentsTitle, documentsGrid, actionButtons);
         auditLayout.expand(documentsGrid);
-        
+
         contentArea.add(auditLayout);
     }
 
@@ -255,20 +262,20 @@ public class ComplianceReporting extends ViewFrame {
         card.getStyle().set("padding", "1.5rem");
         card.getStyle().set("text-align", "center");
         card.getStyle().set("width", "200px");
-        
+
         H4 titleElement = new H4(title);
         titleElement.getStyle().set("margin-top", "0");
         titleElement.getStyle().set("margin-bottom", "0.5rem");
         titleElement.getStyle().set("font-size", "1rem");
-        
+
         Span valueElement = new Span(value);
         valueElement.getStyle().set("font-size", "2rem");
         valueElement.getStyle().set("font-weight", "bold");
         valueElement.getStyle().set("display", "block");
         valueElement.getStyle().set("margin-bottom", "0.5rem");
-        
+
         Badge changeBadge = new Badge(change, trendColor, BadgeSize.S, BadgeShape.PILL);
-        
+
         card.add(titleElement, valueElement, changeBadge);
         return card;
     }
@@ -279,34 +286,34 @@ public class ComplianceReporting extends ViewFrame {
         reportNameFilter.setValueChangeMode(ValueChangeMode.EAGER);
         reportNameFilter.setClearButtonVisible(true);
         reportNameFilter.setPlaceholder("Search by name...");
-        
+
         ComboBox<String> regulationFilter = new ComboBox<>();
         regulationFilter.setItems("GDPR", "PCI-DSS", "SOX", "Basel III", "AML", "KYC", "FATCA");
         regulationFilter.setClearButtonVisible(true);
         regulationFilter.setPlaceholder("All Regulations");
-        
+
         ComboBox<String> frequencyFilter = new ComboBox<>();
         frequencyFilter.setItems("Daily", "Weekly", "Monthly", "Quarterly", "Yearly");
         frequencyFilter.setClearButtonVisible(true);
         frequencyFilter.setPlaceholder("All Frequencies");
-        
+
         DatePicker dueDateFilter = new DatePicker();
         dueDateFilter.setClearButtonVisible(true);
         dueDateFilter.setPlaceholder("Due Date");
-        
+
         ComboBox<String> statusFilter = new ComboBox<>();
         statusFilter.setItems("Pending", "In Progress", "Submitted", "Approved", "Rejected");
         statusFilter.setClearButtonVisible(true);
         statusFilter.setPlaceholder("All Statuses");
-        
+
         // Create buttons
         Button searchButton = UIUtils.createPrimaryButton("Search");
         Button clearButton = UIUtils.createTertiaryButton("Clear");
-        
+
         // Create button layout
         HorizontalLayout buttonLayout = new HorizontalLayout(searchButton, clearButton);
         buttonLayout.setSpacing(true);
-        
+
         // Create form layout
         FormLayout formLayout = new FormLayout();
         formLayout.addFormItem(reportNameFilter, "Report Name");
@@ -314,13 +321,13 @@ public class ComplianceReporting extends ViewFrame {
         formLayout.addFormItem(frequencyFilter, "Frequency");
         formLayout.addFormItem(dueDateFilter, "Due Date");
         formLayout.addFormItem(statusFilter, "Status");
-        
+
         formLayout.setResponsiveSteps(
             new FormLayout.ResponsiveStep("0", 1, FormLayout.ResponsiveStep.LabelsPosition.TOP),
             new FormLayout.ResponsiveStep("600px", 2, FormLayout.ResponsiveStep.LabelsPosition.TOP),
             new FormLayout.ResponsiveStep("900px", 3, FormLayout.ResponsiveStep.LabelsPosition.TOP)
         );
-        
+
         // Create a container for the form and buttons
         Div formContainer = new Div(formLayout, buttonLayout);
         formContainer.getStyle().set("padding", "1em");
@@ -328,21 +335,21 @@ public class ComplianceReporting extends ViewFrame {
         formContainer.getStyle().set("border-radius", "var(--lumo-border-radius)");
         formContainer.getStyle().set("background-color", "var(--lumo-base-color)");
         formContainer.getStyle().set("margin-bottom", "1em");
-        
+
         return formContainer;
     }
 
     private Grid<ComplianceReport> createReportsGrid() {
         Grid<ComplianceReport> grid = new Grid<>();
-        
-        // Initialize data provider with mock data
-        Collection<ComplianceReport> reports = generateMockReports();
+
+        // Initialize data provider with data from service
+        Collection<ComplianceReport> reports = getComplianceReportsFromService();
         reportsDataProvider = new ListDataProvider<>(reports);
         grid.setDataProvider(reportsDataProvider);
-        
+
         grid.setId("compliance-reports");
         grid.setSizeFull();
-        
+
         // Add columns
         grid.addColumn(ComplianceReport::getReportId)
                 .setHeader("Report ID")
@@ -379,20 +386,20 @@ public class ComplianceReporting extends ViewFrame {
                 .setHeader("Assigned To")
                 .setSortable(true)
                 .setWidth("180px");
-        
+
         return grid;
     }
-    
+
     private Grid<ComplianceIssue> createIssuesGrid() {
         Grid<ComplianceIssue> grid = new Grid<>();
-        
+
         // Initialize data provider with mock data
         Collection<ComplianceIssue> issues = generateMockIssues();
         grid.setItems(issues);
-        
+
         grid.setId("compliance-issues");
         grid.setSizeFull();
-        
+
         // Add columns
         grid.addColumn(ComplianceIssue::getIssueId)
                 .setHeader("Issue ID")
@@ -435,20 +442,20 @@ public class ComplianceReporting extends ViewFrame {
                 .setHeader("Assigned To")
                 .setSortable(true)
                 .setWidth("180px");
-        
+
         return grid;
     }
-    
+
     private Grid<AuditTask> createAuditTasksGrid() {
         Grid<AuditTask> grid = new Grid<>();
-        
+
         // Initialize data provider with mock data
         Collection<AuditTask> tasks = generateMockAuditTasks();
         grid.setItems(tasks);
-        
+
         grid.setId("audit-tasks");
         grid.setSizeFull();
-        
+
         // Add columns
         grid.addColumn(AuditTask::getTaskId)
                 .setHeader("Task ID")
@@ -481,20 +488,20 @@ public class ComplianceReporting extends ViewFrame {
                 .setHeader("Assigned To")
                 .setSortable(true)
                 .setWidth("180px");
-        
+
         return grid;
     }
-    
+
     private Grid<ComplianceDocument> createDocumentsGrid() {
         Grid<ComplianceDocument> grid = new Grid<>();
-        
+
         // Initialize data provider with mock data
         Collection<ComplianceDocument> documents = generateMockDocuments();
         grid.setItems(documents);
-        
+
         grid.setId("compliance-documents");
         grid.setSizeFull();
-        
+
         // Add columns
         grid.addColumn(ComplianceDocument::getDocumentId)
                 .setHeader("Document ID")
@@ -531,7 +538,7 @@ public class ComplianceReporting extends ViewFrame {
                 .setSortable(true)
                 .setComparator(ComplianceDocument::getFileSize)
                 .setWidth("100px");
-        
+
         return grid;
     }
 
@@ -559,7 +566,7 @@ public class ComplianceReporting extends ViewFrame {
 
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
-    
+
     private Component createSeverityBadge(String severity) {
         BadgeColor color;
         switch (severity) {
@@ -581,7 +588,7 @@ public class ComplianceReporting extends ViewFrame {
 
         return new Badge(severity, color, BadgeSize.S, BadgeShape.PILL);
     }
-    
+
     private Component createCompletionBadge(String status) {
         BadgeColor color;
         switch (status) {
@@ -604,86 +611,28 @@ public class ComplianceReporting extends ViewFrame {
         return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
     }
 
-    private Collection<ComplianceReport> generateMockReports() {
-        List<ComplianceReport> reports = new ArrayList<>();
-        Random random = new Random(42); // Fixed seed for reproducible data
+    private Collection<ComplianceReport> getComplianceReportsFromService() {
+        // Get compliance reports from the service
+        Collection<ComplianceReportDTO> reportDTOs = reportingAnalyticsService.getComplianceReports();
 
-        String[] reportNames = {
-            "GDPR Data Processing Report", 
-            "PCI-DSS Compliance Assessment",
-            "SOX Financial Controls Report",
-            "Basel III Capital Adequacy Report",
-            "AML Transaction Monitoring Report",
-            "KYC Verification Compliance Report",
-            "FATCA Reporting",
-            "Suspicious Activity Report (SAR)",
-            "Currency Transaction Report (CTR)",
-            "Regulatory Examination Preparation",
-            "Privacy Impact Assessment",
-            "Information Security Compliance Report",
-            "Third-Party Risk Assessment",
-            "Business Continuity Compliance",
-            "Fraud Prevention Compliance"
-        };
-        
-        String[] regulations = {
-            "GDPR", 
-            "PCI-DSS", 
-            "SOX", 
-            "Basel III", 
-            "AML", 
-            "KYC", 
-            "FATCA"
-        };
-        
-        String[] frequencies = {
-            "Monthly", 
-            "Quarterly", 
-            "Yearly", 
-            "Semi-annually", 
-            "On-demand"
-        };
-        
-        String[] statuses = {
-            "Pending", 
-            "In Progress", 
-            "Submitted", 
-            "Approved", 
-            "Rejected"
-        };
-        
-        String[] assignedTo = {
-            "John Smith", 
-            "Maria Rodriguez", 
-            "Wei Zhang", 
-            "Sarah Johnson", 
-            "Ahmed Hassan",
-            "Compliance Team",
-            "Risk Management",
-            "Legal Department"
-        };
-        
-        for (int i = 0; i < reportNames.length; i++) {
-            ComplianceReport report = new ComplianceReport();
-            report.setReportId("CR" + String.format("%04d", i + 1));
-            report.setReportName(reportNames[i]);
-            report.setRegulation(regulations[random.nextInt(regulations.length)]);
-            report.setFrequency(frequencies[random.nextInt(frequencies.length)]);
-            
-            // Generate due date
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime dueDate = now.plusDays(random.nextInt(90) + 1);
-            report.setDueDate(dueDate);
-            
-            report.setStatus(statuses[random.nextInt(statuses.length)]);
-            report.setAssignedTo(assignedTo[random.nextInt(assignedTo.length)]);
-            
-            reports.add(report);
-        }
-        
-        return reports;
+        // Convert DTOs to view model objects
+        return reportDTOs.stream()
+                .map(this::convertToViewModel)
+                .collect(Collectors.toList());
     }
-    
+
+    private ComplianceReport convertToViewModel(ComplianceReportDTO dto) {
+        ComplianceReport report = new ComplianceReport();
+        report.setReportId(dto.getReportId());
+        report.setReportName(dto.getReportName());
+        report.setRegulation(dto.getRegulation());
+        report.setFrequency(dto.getFrequency());
+        report.setDueDate(dto.getDueDate());
+        report.setStatus(dto.getStatus());
+        report.setAssignedTo(dto.getAssignedTo());
+        return report;
+    }
+
     private Collection<ComplianceIssue> generateMockIssues() {
         List<ComplianceIssue> issues = new ArrayList<>();
         Random random = new Random(42); // Fixed seed for reproducible data
@@ -700,7 +649,7 @@ public class ComplianceReporting extends ViewFrame {
             "Missing Consent Records",
             "Inadequate Third-Party Oversight"
         };
-        
+
         String[] categories = {
             "KYC/AML", 
             "Data Privacy", 
@@ -708,14 +657,14 @@ public class ComplianceReporting extends ViewFrame {
             "Information Security", 
             "Regulatory Reporting"
         };
-        
+
         String[] severities = {
             "Critical", 
             "High", 
             "Medium", 
             "Low"
         };
-        
+
         String[] assignedTo = {
             "John Smith", 
             "Maria Rodriguez", 
@@ -726,31 +675,31 @@ public class ComplianceReporting extends ViewFrame {
             "Risk Management",
             "Legal Department"
         };
-        
+
         for (int i = 0; i < issueTitles.length; i++) {
             ComplianceIssue issue = new ComplianceIssue();
             issue.setIssueId("CI" + String.format("%04d", i + 1));
             issue.setTitle(issueTitles[i]);
             issue.setCategory(categories[random.nextInt(categories.length)]);
             issue.setSeverity(severities[random.nextInt(severities.length)]);
-            
+
             // Generate identified date (past)
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime identifiedDate = now.minusDays(random.nextInt(30) + 1);
             issue.setIdentifiedDate(identifiedDate);
-            
+
             // Generate due date (future)
             LocalDateTime dueDate = now.plusDays(random.nextInt(60) + 1);
             issue.setDueDate(dueDate);
-            
+
             issue.setAssignedTo(assignedTo[random.nextInt(assignedTo.length)]);
-            
+
             issues.add(issue);
         }
-        
+
         return issues;
     }
-    
+
     private Collection<AuditTask> generateMockAuditTasks() {
         List<AuditTask> tasks = new ArrayList<>();
         Random random = new Random(42); // Fixed seed for reproducible data
@@ -767,7 +716,7 @@ public class ComplianceReporting extends ViewFrame {
             "Update Compliance Calendar",
             "Compile Incident Reports"
         };
-        
+
         String[] categories = {
             "Documentation", 
             "Process Review", 
@@ -775,14 +724,14 @@ public class ComplianceReporting extends ViewFrame {
             "Control Testing", 
             "Reporting"
         };
-        
+
         String[] statuses = {
             "Completed", 
             "In Progress", 
             "Not Started", 
             "Overdue"
         };
-        
+
         String[] assignedTo = {
             "John Smith", 
             "Maria Rodriguez", 
@@ -793,27 +742,27 @@ public class ComplianceReporting extends ViewFrame {
             "Risk Management",
             "Operations Team"
         };
-        
+
         for (int i = 0; i < taskNames.length; i++) {
             AuditTask task = new AuditTask();
             task.setTaskId("AT" + String.format("%04d", i + 1));
             task.setTaskName(taskNames[i]);
             task.setCategory(categories[random.nextInt(categories.length)]);
             task.setCompletionStatus(statuses[random.nextInt(statuses.length)]);
-            
+
             // Generate due date
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime dueDate = now.plusDays(random.nextInt(30) + 1);
             task.setDueDate(dueDate);
-            
+
             task.setAssignedTo(assignedTo[random.nextInt(assignedTo.length)]);
-            
+
             tasks.add(task);
         }
-        
+
         return tasks;
     }
-    
+
     private Collection<ComplianceDocument> generateMockDocuments() {
         List<ComplianceDocument> documents = new ArrayList<>();
         Random random = new Random(42); // Fixed seed for reproducible data
@@ -835,7 +784,7 @@ public class ComplianceReporting extends ViewFrame {
             "Code of Conduct",
             "Whistleblower Policy"
         };
-        
+
         String[] categories = {
             "Policies", 
             "Procedures", 
@@ -844,7 +793,7 @@ public class ComplianceReporting extends ViewFrame {
             "Correspondence",
             "Governance"
         };
-        
+
         String[] uploadedBy = {
             "John Smith", 
             "Maria Rodriguez", 
@@ -855,28 +804,28 @@ public class ComplianceReporting extends ViewFrame {
             "Risk Management",
             "Legal Department"
         };
-        
+
         for (int i = 0; i < documentNames.length; i++) {
             ComplianceDocument document = new ComplianceDocument();
             document.setDocumentId("DOC" + String.format("%04d", i + 1));
             document.setDocumentName(documentNames[i]);
             document.setCategory(categories[random.nextInt(categories.length)]);
             document.setVersion(String.format("v%d.%d", 1 + random.nextInt(3), random.nextInt(10)));
-            
+
             // Generate upload date
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime uploadDate = now.minusDays(random.nextInt(180) + 1);
             document.setUploadDate(uploadDate);
-            
+
             document.setUploadedBy(uploadedBy[random.nextInt(uploadedBy.length)]);
             document.setFileSize(100 + random.nextInt(900)); // 100-999 KB
-            
+
             documents.add(document);
         }
-        
+
         return documents;
     }
-    
+
     // Inner class to represent a compliance report
     public static class ComplianceReport {
         private String reportId;
@@ -886,64 +835,64 @@ public class ComplianceReporting extends ViewFrame {
         private LocalDateTime dueDate;
         private String status;
         private String assignedTo;
-        
+
         public String getReportId() {
             return reportId;
         }
-        
+
         public void setReportId(String reportId) {
             this.reportId = reportId;
         }
-        
+
         public String getReportName() {
             return reportName;
         }
-        
+
         public void setReportName(String reportName) {
             this.reportName = reportName;
         }
-        
+
         public String getRegulation() {
             return regulation;
         }
-        
+
         public void setRegulation(String regulation) {
             this.regulation = regulation;
         }
-        
+
         public String getFrequency() {
             return frequency;
         }
-        
+
         public void setFrequency(String frequency) {
             this.frequency = frequency;
         }
-        
+
         public LocalDateTime getDueDate() {
             return dueDate;
         }
-        
+
         public void setDueDate(LocalDateTime dueDate) {
             this.dueDate = dueDate;
         }
-        
+
         public String getStatus() {
             return status;
         }
-        
+
         public void setStatus(String status) {
             this.status = status;
         }
-        
+
         public String getAssignedTo() {
             return assignedTo;
         }
-        
+
         public void setAssignedTo(String assignedTo) {
             this.assignedTo = assignedTo;
         }
     }
-    
+
     // Inner class to represent a compliance issue
     public static class ComplianceIssue {
         private String issueId;
@@ -953,64 +902,64 @@ public class ComplianceReporting extends ViewFrame {
         private LocalDateTime identifiedDate;
         private LocalDateTime dueDate;
         private String assignedTo;
-        
+
         public String getIssueId() {
             return issueId;
         }
-        
+
         public void setIssueId(String issueId) {
             this.issueId = issueId;
         }
-        
+
         public String getTitle() {
             return title;
         }
-        
+
         public void setTitle(String title) {
             this.title = title;
         }
-        
+
         public String getCategory() {
             return category;
         }
-        
+
         public void setCategory(String category) {
             this.category = category;
         }
-        
+
         public String getSeverity() {
             return severity;
         }
-        
+
         public void setSeverity(String severity) {
             this.severity = severity;
         }
-        
+
         public LocalDateTime getIdentifiedDate() {
             return identifiedDate;
         }
-        
+
         public void setIdentifiedDate(LocalDateTime identifiedDate) {
             this.identifiedDate = identifiedDate;
         }
-        
+
         public LocalDateTime getDueDate() {
             return dueDate;
         }
-        
+
         public void setDueDate(LocalDateTime dueDate) {
             this.dueDate = dueDate;
         }
-        
+
         public String getAssignedTo() {
             return assignedTo;
         }
-        
+
         public void setAssignedTo(String assignedTo) {
             this.assignedTo = assignedTo;
         }
     }
-    
+
     // Inner class to represent an audit task
     public static class AuditTask {
         private String taskId;
@@ -1019,56 +968,56 @@ public class ComplianceReporting extends ViewFrame {
         private String completionStatus;
         private LocalDateTime dueDate;
         private String assignedTo;
-        
+
         public String getTaskId() {
             return taskId;
         }
-        
+
         public void setTaskId(String taskId) {
             this.taskId = taskId;
         }
-        
+
         public String getTaskName() {
             return taskName;
         }
-        
+
         public void setTaskName(String taskName) {
             this.taskName = taskName;
         }
-        
+
         public String getCategory() {
             return category;
         }
-        
+
         public void setCategory(String category) {
             this.category = category;
         }
-        
+
         public String getCompletionStatus() {
             return completionStatus;
         }
-        
+
         public void setCompletionStatus(String completionStatus) {
             this.completionStatus = completionStatus;
         }
-        
+
         public LocalDateTime getDueDate() {
             return dueDate;
         }
-        
+
         public void setDueDate(LocalDateTime dueDate) {
             this.dueDate = dueDate;
         }
-        
+
         public String getAssignedTo() {
             return assignedTo;
         }
-        
+
         public void setAssignedTo(String assignedTo) {
             this.assignedTo = assignedTo;
         }
     }
-    
+
     // Inner class to represent a compliance document
     public static class ComplianceDocument {
         private String documentId;
@@ -1078,59 +1027,59 @@ public class ComplianceReporting extends ViewFrame {
         private LocalDateTime uploadDate;
         private String uploadedBy;
         private int fileSize; // in KB
-        
+
         public String getDocumentId() {
             return documentId;
         }
-        
+
         public void setDocumentId(String documentId) {
             this.documentId = documentId;
         }
-        
+
         public String getDocumentName() {
             return documentName;
         }
-        
+
         public void setDocumentName(String documentName) {
             this.documentName = documentName;
         }
-        
+
         public String getCategory() {
             return category;
         }
-        
+
         public void setCategory(String category) {
             this.category = category;
         }
-        
+
         public String getVersion() {
             return version;
         }
-        
+
         public void setVersion(String version) {
             this.version = version;
         }
-        
+
         public LocalDateTime getUploadDate() {
             return uploadDate;
         }
-        
+
         public void setUploadDate(LocalDateTime uploadDate) {
             this.uploadDate = uploadDate;
         }
-        
+
         public String getUploadedBy() {
             return uploadedBy;
         }
-        
+
         public void setUploadedBy(String uploadedBy) {
             this.uploadedBy = uploadedBy;
         }
-        
+
         public int getFileSize() {
             return fileSize;
         }
-        
+
         public void setFileSize(int fileSize) {
             this.fileSize = fileSize;
         }

@@ -22,6 +22,10 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.taskmanagement.PerformanceFactorDTO;
+import com.vaadin.starter.business.backend.dto.taskmanagement.TeamMemberPerformanceDTO;
+import com.vaadin.starter.business.backend.dto.taskmanagement.TeamPerformanceDataDTO;
+import com.vaadin.starter.business.backend.service.TaskManagementService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
@@ -35,16 +39,16 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 @PageTitle(NavigationConstants.TEAM_PERFORMANCE)
 @Route(value = "task-management/team-performance", layout = MainLayout.class)
 public class TeamPerformance extends ViewFrame {
 
     private Div contentArea;
-    private Random random = new Random(42); // Fixed seed for reproducible data
+    private final TaskManagementService taskManagementService;
 
-    public TeamPerformance() {
+    public TeamPerformance(TaskManagementService taskManagementService) {
+        this.taskManagementService = taskManagementService;
         setViewContent(createContent());
     }
 
@@ -208,16 +212,16 @@ public class TeamPerformance extends ViewFrame {
         // Team member performance grid
         H4 performanceHeader = new H4("Team Member Performance");
 
-        Grid<TeamMemberPerformance> grid = new Grid<>();
+        Grid<TeamMemberPerformanceDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-        grid.addColumn(TeamMemberPerformance::getName).setHeader("Name").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getTeam).setHeader("Team").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getTasksCompleted).setHeader("Tasks Completed").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getAvgResolutionTime).setHeader("Avg. Resolution Time").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getSlaCompliance).setHeader("SLA Compliance").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getCustomerSatisfaction).setHeader("Customer Satisfaction").setAutoWidth(true);
-        grid.addColumn(TeamMemberPerformance::getEfficiencyScore).setHeader("Efficiency Score").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getName).setHeader("Name").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getTeam).setHeader("Team").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getTasksCompleted).setHeader("Tasks Completed").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getAvgResolutionTime).setHeader("Avg. Resolution Time").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getSlaCompliance).setHeader("SLA Compliance").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getCustomerSatisfaction).setHeader("Customer Satisfaction").setAutoWidth(true);
+        grid.addColumn(TeamMemberPerformanceDTO::getEfficiencyScore).setHeader("Efficiency Score").setAutoWidth(true);
 
         grid.addColumn(new ComponentRenderer<>(member -> {
             // Create a progress bar to show performance score
@@ -247,18 +251,8 @@ public class TeamPerformance extends ViewFrame {
             return layout1;
         })).setHeader("Performance Score").setAutoWidth(true);
 
-        // Add sample data
-        List<TeamMemberPerformance> members = new ArrayList<>();
-        members.add(new TeamMemberPerformance("John Smith", "Customer Support", 156, "3.8 hrs", "92%", "4.8/5", "High", 88));
-        members.add(new TeamMemberPerformance("Maria Garcia", "Customer Support", 142, "4.1 hrs", "89%", "4.7/5", "High", 85));
-        members.add(new TeamMemberPerformance("Ahmed Khan", "Operations", 128, "4.5 hrs", "85%", "4.5/5", "Medium", 78));
-        members.add(new TeamMemberPerformance("Sarah Johnson", "Operations", 138, "4.2 hrs", "87%", "4.6/5", "High", 82));
-        members.add(new TeamMemberPerformance("Michael Brown", "Risk Management", 112, "5.1 hrs", "82%", "4.4/5", "Medium", 75));
-        members.add(new TeamMemberPerformance("Lisa Wong", "Risk Management", 124, "4.8 hrs", "84%", "4.5/5", "Medium", 77));
-        members.add(new TeamMemberPerformance("David Miller", "Document Processing", 148, "3.9 hrs", "90%", "4.7/5", "High", 86));
-        members.add(new TeamMemberPerformance("Emma Wilson", "Document Processing", 132, "4.3 hrs", "86%", "4.6/5", "Medium", 80));
-
-        grid.setItems(members);
+        // Load data
+        grid.setItems(taskManagementService.getTeamMemberPerformance());
 
         layout.add(selectionLayout, board, performanceHeader, grid);
         layout.expand(grid);
@@ -326,26 +320,20 @@ public class TeamPerformance extends ViewFrame {
         // Team performance grid
         H4 teamPerformanceHeader = new H4("Team Performance Comparison");
 
-        Grid<TeamPerformanceData> grid = new Grid<>();
+        Grid<TeamPerformanceDataDTO> grid = new Grid<>();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-        grid.addColumn(TeamPerformanceData::getTeam).setHeader("Team").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getMemberCount).setHeader("Team Size").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getTasksCompleted).setHeader("Tasks Completed").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getTasksPerMember).setHeader("Tasks/Member").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getAvgResolutionTime).setHeader("Avg. Resolution Time").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getSlaCompliance).setHeader("SLA Compliance").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getCustomerSatisfaction).setHeader("Customer Satisfaction").setAutoWidth(true);
-        grid.addColumn(TeamPerformanceData::getEfficiencyRank).setHeader("Efficiency Rank").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getTeam).setHeader("Team").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getMemberCount).setHeader("Team Size").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getTasksCompleted).setHeader("Tasks Completed").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getTasksPerMember).setHeader("Tasks/Member").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getAvgResolutionTime).setHeader("Avg. Resolution Time").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getSlaCompliance).setHeader("SLA Compliance").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getCustomerSatisfaction).setHeader("Customer Satisfaction").setAutoWidth(true);
+        grid.addColumn(TeamPerformanceDataDTO::getEfficiencyRank).setHeader("Efficiency Rank").setAutoWidth(true);
 
-        // Add sample data
-        List<TeamPerformanceData> teams = new ArrayList<>();
-        teams.add(new TeamPerformanceData("Customer Support", 12, 1845, 153.8, "3.9 hrs", "91%", "4.7/5", "1"));
-        teams.add(new TeamPerformanceData("Operations", 15, 1920, 128.0, "4.3 hrs", "86%", "4.5/5", "3"));
-        teams.add(new TeamPerformanceData("Risk Management", 8, 945, 118.1, "4.9 hrs", "83%", "4.4/5", "4"));
-        teams.add(new TeamPerformanceData("Document Processing", 10, 1420, 142.0, "4.1 hrs", "88%", "4.6/5", "2"));
-
-        grid.setItems(teams);
+        // Load data
+        grid.setItems(taskManagementService.getTeamPerformanceData());
 
         layout.add(periodLayout, board, teamPerformanceHeader, grid);
         layout.expand(grid);
@@ -411,23 +399,16 @@ public class TeamPerformance extends ViewFrame {
         // Performance factors
         H4 factorsHeader = new H4("Performance Factors Analysis");
 
-        Grid<PerformanceFactor> factorsGrid = new Grid<>();
+        Grid<PerformanceFactorDTO> factorsGrid = new Grid<>();
         factorsGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-        factorsGrid.addColumn(PerformanceFactor::getFactor).setHeader("Factor").setAutoWidth(true);
-        factorsGrid.addColumn(PerformanceFactor::getImpact).setHeader("Impact").setAutoWidth(true);
-        factorsGrid.addColumn(PerformanceFactor::getTrend).setHeader("Trend").setAutoWidth(true);
-        factorsGrid.addColumn(PerformanceFactor::getRecommendation).setHeader("Recommendation").setAutoWidth(true);
+        factorsGrid.addColumn(PerformanceFactorDTO::getFactor).setHeader("Factor").setAutoWidth(true);
+        factorsGrid.addColumn(PerformanceFactorDTO::getImpact).setHeader("Impact").setAutoWidth(true);
+        factorsGrid.addColumn(PerformanceFactorDTO::getTrend).setHeader("Trend").setAutoWidth(true);
+        factorsGrid.addColumn(PerformanceFactorDTO::getRecommendation).setHeader("Recommendation").setAutoWidth(true);
 
-        // Add sample data
-        List<PerformanceFactor> factors = new ArrayList<>();
-        factors.add(new PerformanceFactor("Task Volume", "High", "Increasing", "Redistribute workload or increase staffing"));
-        factors.add(new PerformanceFactor("Task Complexity", "Medium", "Stable", "Provide additional training for complex tasks"));
-        factors.add(new PerformanceFactor("Team Size", "Medium", "Decreasing", "Review resource allocation"));
-        factors.add(new PerformanceFactor("System Performance", "Low", "Improving", "Continue system optimization"));
-        factors.add(new PerformanceFactor("Process Efficiency", "High", "Improving", "Document and share best practices"));
-
-        factorsGrid.setItems(factors);
+        // Load data
+        factorsGrid.setItems(taskManagementService.getPerformanceFactors());
 
         layout.add(filterLayout, board, factorsHeader, factorsGrid);
         layout.expand(factorsGrid);
@@ -955,98 +936,6 @@ public class TeamPerformance extends ViewFrame {
     }
 
     private Number[] generateRandomData(int count, double min, double max) {
-        Number[] data = new Number[count];
-        for (int i = 0; i < count; i++) {
-            data[i] = min + (random.nextDouble() * (max - min));
-        }
-        return data;
-    }
-
-    // Team Member Performance data class
-    public static class TeamMemberPerformance {
-        private String name;
-        private String team;
-        private int tasksCompleted;
-        private String avgResolutionTime;
-        private String slaCompliance;
-        private String customerSatisfaction;
-        private String efficiencyScore;
-        private int performanceScore;
-
-        public TeamMemberPerformance(String name, String team, int tasksCompleted, String avgResolutionTime,
-                                    String slaCompliance, String customerSatisfaction, String efficiencyScore,
-                                    int performanceScore) {
-            this.name = name;
-            this.team = team;
-            this.tasksCompleted = tasksCompleted;
-            this.avgResolutionTime = avgResolutionTime;
-            this.slaCompliance = slaCompliance;
-            this.customerSatisfaction = customerSatisfaction;
-            this.efficiencyScore = efficiencyScore;
-            this.performanceScore = performanceScore;
-        }
-
-        public String getName() { return name; }
-        public String getTeam() { return team; }
-        public int getTasksCompleted() { return tasksCompleted; }
-        public String getAvgResolutionTime() { return avgResolutionTime; }
-        public String getSlaCompliance() { return slaCompliance; }
-        public String getCustomerSatisfaction() { return customerSatisfaction; }
-        public String getEfficiencyScore() { return efficiencyScore; }
-        public int getPerformanceScore() { return performanceScore; }
-    }
-
-    // Team Performance data class
-    public static class TeamPerformanceData {
-        private String team;
-        private int memberCount;
-        private int tasksCompleted;
-        private double tasksPerMember;
-        private String avgResolutionTime;
-        private String slaCompliance;
-        private String customerSatisfaction;
-        private String efficiencyRank;
-
-        public TeamPerformanceData(String team, int memberCount, int tasksCompleted, double tasksPerMember,
-                                  String avgResolutionTime, String slaCompliance, String customerSatisfaction,
-                                  String efficiencyRank) {
-            this.team = team;
-            this.memberCount = memberCount;
-            this.tasksCompleted = tasksCompleted;
-            this.tasksPerMember = tasksPerMember;
-            this.avgResolutionTime = avgResolutionTime;
-            this.slaCompliance = slaCompliance;
-            this.customerSatisfaction = customerSatisfaction;
-            this.efficiencyRank = efficiencyRank;
-        }
-
-        public String getTeam() { return team; }
-        public int getMemberCount() { return memberCount; }
-        public int getTasksCompleted() { return tasksCompleted; }
-        public double getTasksPerMember() { return tasksPerMember; }
-        public String getAvgResolutionTime() { return avgResolutionTime; }
-        public String getSlaCompliance() { return slaCompliance; }
-        public String getCustomerSatisfaction() { return customerSatisfaction; }
-        public String getEfficiencyRank() { return efficiencyRank; }
-    }
-
-    // Performance Factor data class
-    public static class PerformanceFactor {
-        private String factor;
-        private String impact;
-        private String trend;
-        private String recommendation;
-
-        public PerformanceFactor(String factor, String impact, String trend, String recommendation) {
-            this.factor = factor;
-            this.impact = impact;
-            this.trend = trend;
-            this.recommendation = recommendation;
-        }
-
-        public String getFactor() { return factor; }
-        public String getImpact() { return impact; }
-        public String getTrend() { return trend; }
-        public String getRecommendation() { return recommendation; }
+        return taskManagementService.generateRandomData(count, min, max);
     }
 }

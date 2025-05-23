@@ -13,6 +13,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.fraudriskoperations.AmlKycCaseDTO;
+import com.vaadin.starter.business.backend.service.FraudRiskOperationsService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
 import com.vaadin.starter.business.ui.components.ListItem;
@@ -25,12 +27,15 @@ import com.vaadin.starter.business.ui.util.BoxShadowBorders;
 import com.vaadin.starter.business.ui.util.LumoStyles;
 import com.vaadin.starter.business.ui.util.css.WhiteSpace;
 import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
 
 @PageTitle("AML/KYC Case Details")
 @Route(value = "fraud-risk/aml-kyc-details", layout = MainLayout.class)
 public class AmlKycCaseDetails extends ViewFrame implements HasUrlParameter<String> {
+
+    private final FraudRiskOperationsService fraudRiskOperationsService;
 
     private ListItem caseId;
     private ListItem customerId;
@@ -46,12 +51,38 @@ public class AmlKycCaseDetails extends ViewFrame implements HasUrlParameter<Stri
 
     private AmlKycCases.AmlKycCase amlKycCase;
 
+    @Autowired
+    public AmlKycCaseDetails(FraudRiskOperationsService fraudRiskOperationsService) {
+        this.fraudRiskOperationsService = fraudRiskOperationsService;
+    }
+
     @Override
     public void setParameter(BeforeEvent beforeEvent, String caseId) {
-        // In a real application, this would fetch the AML/KYC case from a service
-        // For this example, we'll create a mock case
-        amlKycCase = createMockAmlKycCase(caseId);
-        setViewContent(createContent());
+        // Fetch the AML/KYC case from the service
+        AmlKycCaseDTO caseDTO = fraudRiskOperationsService.getAmlKycCaseById(caseId);
+        if (caseDTO != null) {
+            amlKycCase = convertToViewModel(caseDTO);
+            setViewContent(createContent());
+        } else {
+            // Handle case not found
+            UI.getCurrent().navigate("fraud-risk/aml-kyc");
+        }
+    }
+
+    private AmlKycCases.AmlKycCase convertToViewModel(AmlKycCaseDTO dto) {
+        AmlKycCases.AmlKycCase amlCase = new AmlKycCases.AmlKycCase();
+        amlCase.setCaseId(dto.getCaseId());
+        amlCase.setCustomerId(dto.getCustomerId());
+        amlCase.setCustomerName(dto.getCustomerName());
+        amlCase.setCaseType(dto.getCaseType());
+        amlCase.setStatus(dto.getStatus());
+        amlCase.setRiskLevel(dto.getRiskLevel());
+        amlCase.setAssignedTo(dto.getAssignedTo());
+        amlCase.setCreatedDate(dto.getCreatedDate());
+        amlCase.setDueDate(dto.getDueDate());
+        amlCase.setRegulatoryBody(dto.getRegulatoryBody());
+        amlCase.setNotes(dto.getNotes());
+        return amlCase;
     }
 
     private Component createContent() {
@@ -132,15 +163,15 @@ public class AmlKycCaseDetails extends ViewFrame implements HasUrlParameter<Stri
         status.setPrimaryText(amlKycCase.getStatus());
         riskLevel.setPrimaryText(amlKycCase.getRiskLevel());
         assignedTo.setPrimaryText(amlKycCase.getAssignedTo());
-        
+
         if (amlKycCase.getCreatedDate() != null) {
             createdDate.setPrimaryText(amlKycCase.getCreatedDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         }
-        
+
         if (amlKycCase.getDueDate() != null) {
             dueDate.setPrimaryText(amlKycCase.getDueDate().toString());
         }
-        
+
         regulatoryBody.setPrimaryText(amlKycCase.getRegulatoryBody());
         notes.setPrimaryText(amlKycCase.getNotes());
 
@@ -228,19 +259,4 @@ public class AmlKycCaseDetails extends ViewFrame implements HasUrlParameter<Stri
         return appBar;
     }
 
-    private AmlKycCases.AmlKycCase createMockAmlKycCase(String caseId) {
-        AmlKycCases.AmlKycCase amlKycCase = new AmlKycCases.AmlKycCase();
-        amlKycCase.setCaseId(caseId);
-        amlKycCase.setCustomerId("C10045");
-        amlKycCase.setCustomerName("John Smith");
-        amlKycCase.setCaseType("Enhanced Due Diligence");
-        amlKycCase.setStatus("In Progress");
-        amlKycCase.setRiskLevel("High");
-        amlKycCase.setAssignedTo("Maria Rodriguez");
-        amlKycCase.setCreatedDate(java.time.LocalDateTime.now().minusDays(15));
-        amlKycCase.setDueDate(java.time.LocalDate.now().plusDays(10));
-        amlKycCase.setRegulatoryBody("FinCEN");
-        amlKycCase.setNotes("Customer documentation incomplete, follow-up required. Multiple high-value transactions detected in the past month. Need to verify source of funds and beneficial ownership structure.");
-        return amlKycCase;
-    }
 }

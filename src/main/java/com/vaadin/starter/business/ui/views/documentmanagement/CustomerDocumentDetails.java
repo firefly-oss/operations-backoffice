@@ -16,6 +16,9 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.documentmanagement.DocumentDTO;
+import com.vaadin.starter.business.backend.mapper.DocumentMapper;
+import com.vaadin.starter.business.backend.service.DocumentService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.components.Badge;
 import com.vaadin.starter.business.ui.components.FlexBoxLayout;
@@ -34,6 +37,7 @@ import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
 import com.vaadin.starter.business.ui.views.ViewFrame;
 
 import java.time.format.DateTimeFormatter;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle("Customer Document Details")
 @Route(value = "document-management/customer-document-details", layout = MainLayout.class)
@@ -53,12 +57,40 @@ public class CustomerDocumentDetails extends ViewFrame implements HasUrlParamete
 
     private CustomerDocumentation.Document document;
 
+    private final DocumentService documentService;
+    private final DocumentMapper documentMapper;
+
+    @Autowired
+    public CustomerDocumentDetails(DocumentService documentService, DocumentMapper documentMapper) {
+        this.documentService = documentService;
+        this.documentMapper = documentMapper;
+    }
+
     @Override
     public void setParameter(BeforeEvent beforeEvent, String documentId) {
-        // In a real application, this would fetch the document from a service
-        // For this example, we'll create a mock document
-        document = createMockDocument(documentId);
-        setViewContent(createContent());
+        // Fetch the document from the service
+        DocumentDTO documentDTO = documentService.getDocumentById(documentId);
+        if (documentDTO != null) {
+            document = documentMapper.toEntity(documentDTO);
+            setViewContent(createContent());
+        } else {
+            // Handle case where document is not found
+            setViewContent(createDocumentNotFoundContent(documentId));
+        }
+    }
+
+    private Component createDocumentNotFoundContent(String documentId) {
+        FlexBoxLayout content = new FlexBoxLayout();
+        content.setAlignItems(FlexComponent.Alignment.CENTER);
+        content.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        content.setHeightFull();
+
+        Span message = new Span("Document with ID " + documentId + " not found");
+        message.getStyle().set("font-size", "var(--lumo-font-size-xl)");
+        message.getStyle().set("color", "var(--lumo-error-text-color)");
+
+        content.add(message);
+        return content;
     }
 
     private Component createContent() {
@@ -294,18 +326,4 @@ public class CustomerDocumentDetails extends ViewFrame implements HasUrlParamete
         return appBar;
     }
 
-    private CustomerDocumentation.Document createMockDocument(String documentId) {
-        CustomerDocumentation.Document document = new CustomerDocumentation.Document();
-        document.setDocumentId(documentId);
-        document.setCustomerId("C10045");
-        document.setCustomerName("John Smith");
-        document.setDocumentType("ID Document");
-        document.setStatus("Approved");
-        document.setFilename("id_document_c10045_123.pdf");
-        document.setUploadDate(java.time.LocalDateTime.now().minusDays(30));
-        document.setFileSize("2.5 MB");
-        document.setUploadedBy("Sarah Johnson");
-        document.setDescription("Customer identification document submitted for account opening. Government-issued photo ID with current address.");
-        return document;
-    }
 }

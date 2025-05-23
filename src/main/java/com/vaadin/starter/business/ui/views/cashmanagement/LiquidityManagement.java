@@ -12,23 +12,25 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.starter.business.backend.dto.cashmanagement.*;
+import com.vaadin.starter.business.backend.service.LiquidityService;
 import com.vaadin.starter.business.ui.MainLayout;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
 import com.vaadin.starter.business.ui.util.BoxShadowBorders;
 import com.vaadin.starter.business.ui.util.TextColor;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.views.ViewFrame;
-
-import java.time.LocalDate;
-import java.util.Random;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle(NavigationConstants.LIQUIDITY_MANAGEMENT)
 @Route(value = "cash-management/liquidity", layout = MainLayout.class)
 public class LiquidityManagement extends ViewFrame {
 
-    private final Random random = new Random();
+    private final LiquidityService liquidityService;
 
-    public LiquidityManagement() {
+    @Autowired
+    public LiquidityManagement(LiquidityService liquidityService) {
+        this.liquidityService = liquidityService;
         setViewContent(createContent());
     }
 
@@ -78,11 +80,26 @@ public class LiquidityManagement extends ViewFrame {
     }
 
     private Component createLiquiditySummary() {
+        // Get liquidity summary from service
+        LiquiditySummaryDTO summary = liquidityService.getLiquiditySummary();
+
+        // Format values
+        String availableLiquidityValue = "$" + String.format("%,.0f", summary.getAvailableLiquidity());
+        String requiredLiquidityValue = "$" + String.format("%,.0f", summary.getRequiredLiquidity());
+        String liquidityBufferValue = "$" + String.format("%,.0f", summary.getLiquidityBuffer());
+        String liquidityCoverageValue = String.format("%.1f%%", summary.getLiquidityCoverageRatio());
+
+        // Format changes
+        String availableLiquidityChange = String.format("%+.1f%%", summary.getAvailableLiquidityChange());
+        String requiredLiquidityChange = String.format("%+.1f%%", summary.getRequiredLiquidityChange());
+        String liquidityBufferChange = String.format("%+.1f%%", summary.getLiquidityBufferChange());
+        String liquidityCoverageChange = String.format("%+.1f%%", summary.getLiquidityCoverageRatioChange());
+
         // Create metrics
-        Component availableLiquidity = createMetric("Available Liquidity", "$24,500,000", "+5.2%", true);
-        Component requiredLiquidity = createMetric("Required Liquidity", "$18,750,000", "-2.1%", false);
-        Component liquidityBuffer = createMetric("Liquidity Buffer", "$5,750,000", "+8.3%", true);
-        Component liquidityCoverage = createMetric("Liquidity Coverage Ratio", "130.7%", "+3.5%", true);
+        Component availableLiquidity = createMetric("Available Liquidity", availableLiquidityValue, availableLiquidityChange, summary.getAvailableLiquidityChange() >= 0);
+        Component requiredLiquidity = createMetric("Required Liquidity", requiredLiquidityValue, requiredLiquidityChange, summary.getRequiredLiquidityChange() <= 0);
+        Component liquidityBuffer = createMetric("Liquidity Buffer", liquidityBufferValue, liquidityBufferChange, summary.getLiquidityBufferChange() >= 0);
+        Component liquidityCoverage = createMetric("Liquidity Coverage Ratio", liquidityCoverageValue, liquidityCoverageChange, summary.getLiquidityCoverageRatioChange() >= 0);
 
         // Create layout
         VerticalLayout layout = new VerticalLayout();
@@ -129,12 +146,16 @@ public class LiquidityManagement extends ViewFrame {
         Configuration configuration = chart.getConfiguration();
         configuration.setTitle("Cash Flow Forecast (Next 7 Days)");
 
-        XAxis xAxis = new XAxis();
+        // Get cash flow forecast from service
+        CashFlowForecastDTO forecast = liquidityService.getCashFlowForecast(7);
+
+        // Format dates for x-axis
         String[] days = new String[7];
-        LocalDate today = LocalDate.now();
         for (int i = 0; i < 7; i++) {
-            days[i] = today.plusDays(i).toString();
+            days[i] = forecast.getDates().get(i).toString();
         }
+
+        XAxis xAxis = new XAxis();
         xAxis.setCategories(days);
         configuration.addxAxis(xAxis);
 
@@ -156,11 +177,9 @@ public class LiquidityManagement extends ViewFrame {
         ListSeries netCashFlow = new ListSeries("Net Cash Flow");
 
         for (int i = 0; i < 7; i++) {
-            double inflow = 1000000 + random.nextDouble() * 500000;
-            double outflow = 800000 + random.nextDouble() * 400000;
-            inflows.addData(inflow);
-            outflows.addData(-outflow);
-            netCashFlow.addData(inflow - outflow);
+            inflows.addData(forecast.getInflows().get(i));
+            outflows.addData(-forecast.getOutflows().get(i)); // Negative for visualization
+            netCashFlow.addData(forecast.getNetCashFlows().get(i));
         }
 
         configuration.addSeries(inflows);
@@ -190,12 +209,13 @@ public class LiquidityManagement extends ViewFrame {
         plotOptions.setShowInLegend(true);
         configuration.setPlotOptions(plotOptions);
 
+        // Get liquidity allocation from service
+        LiquidityAllocationDTO allocation = liquidityService.getLiquidityAllocation();
+
         DataSeries series = new DataSeries();
-        series.add(new DataSeriesItem("Operating Cash", 8500000));
-        series.add(new DataSeriesItem("Short-term Investments", 6200000));
-        series.add(new DataSeriesItem("Credit Lines", 4800000));
-        series.add(new DataSeriesItem("Marketable Securities", 3100000));
-        series.add(new DataSeriesItem("Other Liquid Assets", 1900000));
+        for (int i = 0; i < allocation.getCategories().size(); i++) {
+            series.add(new DataSeriesItem(allocation.getCategories().get(i), allocation.getAmounts().get(i)));
+        }
 
         configuration.addSeries(series);
 
@@ -212,12 +232,16 @@ public class LiquidityManagement extends ViewFrame {
         Configuration configuration = chart.getConfiguration();
         configuration.setTitle("Liquidity Trend (Last 12 Months)");
 
-        XAxis xAxis = new XAxis();
+        // Get liquidity trend from service
+        LiquidityTrendDTO trend = liquidityService.getLiquidityTrend(12);
+
+        // Format months for x-axis
         String[] months = new String[12];
-        LocalDate today = LocalDate.now();
         for (int i = 0; i < 12; i++) {
-            months[i] = today.minusMonths(11 - i).getMonth().toString();
+            months[i] = trend.getMonths().get(i).toString();
         }
+
+        XAxis xAxis = new XAxis();
         xAxis.setCategories(months);
         configuration.addxAxis(xAxis);
 
@@ -235,14 +259,9 @@ public class LiquidityManagement extends ViewFrame {
         ListSeries availableLiquidity = new ListSeries("Available Liquidity");
         ListSeries requiredLiquidity = new ListSeries("Required Liquidity");
 
-        double available = 20000000;
-        double required = 16000000;
-
         for (int i = 0; i < 12; i++) {
-            available = available * (1 + (random.nextDouble() * 0.05 - 0.02));
-            required = required * (1 + (random.nextDouble() * 0.04 - 0.01));
-            availableLiquidity.addData(available);
-            requiredLiquidity.addData(required);
+            availableLiquidity.addData(trend.getAvailableLiquidity().get(i));
+            requiredLiquidity.addData(trend.getRequiredLiquidity().get(i));
         }
 
         configuration.addSeries(availableLiquidity);
@@ -261,8 +280,11 @@ public class LiquidityManagement extends ViewFrame {
         Configuration configuration = chart.getConfiguration();
         configuration.setTitle("Liquidity by Entity");
 
+        // Get entity liquidity from service
+        EntityLiquidityDTO entityLiquidityDTO = liquidityService.getEntityLiquidity();
+
         XAxis xAxis = new XAxis();
-        String[] entities = {"Corporate HQ", "North America", "Europe", "Asia Pacific", "Latin America", "Middle East & Africa"};
+        String[] entities = entityLiquidityDTO.getEntities().toArray(new String[0]);
         xAxis.setCategories(entities);
         configuration.addxAxis(xAxis);
 
@@ -279,10 +301,16 @@ public class LiquidityManagement extends ViewFrame {
         configuration.setPlotOptions(plotOptions);
 
         ListSeries availableLiquidity = new ListSeries("Available Liquidity");
-        availableLiquidity.setData(9500000, 6200000, 5100000, 3800000, 2100000, 1300000);
+        Number[] availableData = entityLiquidityDTO.getAvailableLiquidity().stream()
+                .map(Number.class::cast)
+                .toArray(Number[]::new);
+        availableLiquidity.setData(availableData);
 
         ListSeries requiredLiquidity = new ListSeries("Required Liquidity");
-        requiredLiquidity.setData(7200000, 4800000, 4100000, 3000000, 1600000, 900000);
+        Number[] requiredData = entityLiquidityDTO.getRequiredLiquidity().stream()
+                .map(Number.class::cast)
+                .toArray(Number[]::new);
+        requiredLiquidity.setData(requiredData);
 
         configuration.addSeries(availableLiquidity);
         configuration.addSeries(requiredLiquidity);
