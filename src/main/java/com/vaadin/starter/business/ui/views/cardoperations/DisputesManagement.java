@@ -1,0 +1,580 @@
+package com.vaadin.starter.business.ui.views.cardoperations;
+
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.page.Page;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.renderer.LocalDateRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
+import com.vaadin.flow.shared.Registration;
+import com.vaadin.starter.business.backend.service.CardService;
+import com.vaadin.starter.business.ui.MainLayout;
+import com.vaadin.starter.business.ui.components.Badge;
+import com.vaadin.starter.business.ui.components.FlexBoxLayout;
+import com.vaadin.starter.business.ui.constants.NavigationConstants;
+import com.vaadin.starter.business.ui.layout.size.*;
+import com.vaadin.starter.business.ui.util.FontSize;
+import com.vaadin.starter.business.ui.util.LineHeight;
+import com.vaadin.starter.business.ui.util.TextColor;
+import com.vaadin.starter.business.ui.util.UIUtils;
+import com.vaadin.starter.business.ui.util.css.BoxSizing;
+import com.vaadin.starter.business.ui.util.css.Overflow;
+import com.vaadin.starter.business.ui.util.css.PointerEvents;
+import com.vaadin.starter.business.ui.util.css.lumo.BadgeColor;
+import com.vaadin.starter.business.ui.util.css.lumo.BadgeShape;
+import com.vaadin.starter.business.ui.util.css.lumo.BadgeSize;
+import com.vaadin.starter.business.ui.views.ViewFrame;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+@PageTitle(NavigationConstants.DISPUTES_MANAGEMENT)
+@Route(value = "card-operations/disputes", layout = MainLayout.class)
+public class DisputesManagement extends ViewFrame {
+
+    public static final int MOBILE_BREAKPOINT = 480;
+    private Grid<Dispute> grid;
+    private Registration resizeListener;
+    private ListDataProvider<Dispute> dataProvider;
+
+    // Filter form fields
+    private TextField disputeIdFilter;
+    private TextField cardNumberFilter;
+    private TextField cardHolderNameFilter;
+    private ComboBox<String> statusFilter;
+    private ComboBox<String> typeFilter;
+    private NumberField amountFromFilter;
+    private NumberField amountToFilter;
+    private DatePicker dateFromFilter;
+    private DatePicker dateToFilter;
+
+    private final CardService cardService;
+
+    @Autowired
+    public DisputesManagement(CardService cardService) {
+        this.cardService = cardService;
+        setViewContent(createContent());
+    }
+
+    private Component createContent() {
+        FlexBoxLayout content = new FlexBoxLayout(createHeader(), createFilterForm(), createGrid());
+        content.setBoxSizing(BoxSizing.BORDER_BOX);
+        content.setHeightFull();
+        content.setPadding(Horizontal.RESPONSIVE_X, Top.RESPONSIVE_X);
+        content.setFlexDirection(FlexDirection.COLUMN);
+        return content;
+    }
+
+    private Component createHeader() {
+        H3 header = new H3("Disputes Management");
+        header.getStyle().set("margin-top", "0");
+
+        Span description = new Span("Manage card disputes and chargebacks.");
+        description.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        FlexBoxLayout headerLayout = new FlexBoxLayout(header, description);
+        headerLayout.setFlexDirection(FlexDirection.COLUMN);
+        headerLayout.setMargin(Bottom.M);
+
+        return headerLayout;
+    }
+
+    private Component createFilterForm() {
+        // Initialize filter fields
+        disputeIdFilter = new TextField();
+        disputeIdFilter.setValueChangeMode(ValueChangeMode.EAGER);
+        disputeIdFilter.setClearButtonVisible(true);
+
+        cardNumberFilter = new TextField();
+        cardNumberFilter.setValueChangeMode(ValueChangeMode.EAGER);
+        cardNumberFilter.setClearButtonVisible(true);
+
+        cardHolderNameFilter = new TextField();
+        cardHolderNameFilter.setValueChangeMode(ValueChangeMode.EAGER);
+        cardHolderNameFilter.setClearButtonVisible(true);
+
+        statusFilter = new ComboBox<>();
+        statusFilter.setItems("New", "In Progress", "Pending Documentation", "Resolved", "Rejected");
+        statusFilter.setClearButtonVisible(true);
+
+        typeFilter = new ComboBox<>();
+        typeFilter.setItems("Unauthorized Transaction", "Duplicate Charge", "Merchandise Not Received", "Defective Merchandise", "Incorrect Amount", "Other");
+        typeFilter.setClearButtonVisible(true);
+
+        amountFromFilter = new NumberField();
+        amountFromFilter.setClearButtonVisible(true);
+
+        amountToFilter = new NumberField();
+        amountToFilter.setClearButtonVisible(true);
+
+        dateFromFilter = new DatePicker();
+        dateFromFilter.setClearButtonVisible(true);
+
+        dateToFilter = new DatePicker();
+        dateToFilter.setClearButtonVisible(true);
+
+        // Create buttons
+        Button searchButton = UIUtils.createPrimaryButton("Search");
+        searchButton.addClickListener(e -> applyFilters());
+
+        Button clearButton = UIUtils.createTertiaryButton("Clear");
+        clearButton.addClickListener(e -> clearFilters());
+
+        Button newDisputeButton = UIUtils.createSuccessButton("New Dispute");
+        newDisputeButton.addClickListener(e -> {
+            // Logic to create a new dispute would go here
+            // For demo purposes, we'll just show a notification
+            UIUtils.showNotification("New dispute creation form would open here");
+        });
+
+        // Create button layout
+        HorizontalLayout buttonLayout = new HorizontalLayout(searchButton, clearButton, newDisputeButton);
+        buttonLayout.setSpacing(true);
+
+        // Create form layout
+        FormLayout formLayout = new FormLayout();
+        formLayout.addFormItem(disputeIdFilter, "Dispute ID");
+        formLayout.addFormItem(cardNumberFilter, "Card Number");
+        formLayout.addFormItem(cardHolderNameFilter, "Card Holder Name");
+        formLayout.addFormItem(statusFilter, "Status");
+        formLayout.addFormItem(typeFilter, "Dispute Type");
+        formLayout.addFormItem(amountFromFilter, "Amount From ($)");
+        formLayout.addFormItem(amountToFilter, "Amount To ($)");
+        formLayout.addFormItem(dateFromFilter, "Date From");
+        formLayout.addFormItem(dateToFilter, "Date To");
+
+        formLayout.setResponsiveSteps(
+            new FormLayout.ResponsiveStep("0", 1, FormLayout.ResponsiveStep.LabelsPosition.TOP),
+            new FormLayout.ResponsiveStep("600px", 2, FormLayout.ResponsiveStep.LabelsPosition.TOP),
+            new FormLayout.ResponsiveStep("900px", 4, FormLayout.ResponsiveStep.LabelsPosition.TOP)
+        );
+
+        // Create a container for the form and buttons
+        Div formContainer = new Div(formLayout, buttonLayout);
+        formContainer.getStyle().set("padding", "1em");
+        formContainer.getStyle().set("box-shadow", "0 0 0 1px var(--lumo-contrast-10pct)");
+        formContainer.getStyle().set("border-radius", "var(--lumo-border-radius)");
+        formContainer.getStyle().set("background-color", "var(--lumo-base-color)");
+        formContainer.getStyle().set("margin-bottom", "1em");
+
+        return formContainer;
+    }
+
+    private Grid createGrid() {
+        grid = new Grid<>();
+        grid.addSelectionListener(event -> event.getFirstSelectedItem().ifPresent(this::viewDetails));
+        grid.addThemeName("mobile");
+
+        // Initialize with dummy data
+        List<Dispute> disputes = getDummyDisputes();
+        dataProvider = new ListDataProvider<>(disputes);
+        grid.setDataProvider(dataProvider);
+
+        grid.setId("disputes");
+        grid.setSizeFull();
+
+        // "Mobile" column
+        grid.addColumn(new ComponentRenderer<>(this::getMobileTemplate))
+                .setVisible(false);
+
+        // "Desktop" columns
+        grid.addColumn(Dispute::getDisputeId)
+                .setAutoWidth(true)
+                .setFlexGrow(0)
+                .setFrozen(true)
+                .setHeader("Dispute ID")
+                .setSortable(true);
+        grid.addColumn(Dispute::getCardNumber)
+                .setHeader("Card Number")
+                .setSortable(true)
+                .setWidth("150px");
+        grid.addColumn(Dispute::getCardHolderName)
+                .setHeader("Card Holder Name")
+                .setSortable(true)
+                .setWidth("200px");
+        grid.addColumn(new ComponentRenderer<>(this::createStatusBadge))
+                .setHeader("Status")
+                .setSortable(true)
+                .setComparator(Dispute::getStatus)
+                .setWidth("150px");
+        grid.addColumn(Dispute::getType)
+                .setHeader("Type")
+                .setSortable(true)
+                .setWidth("200px");
+        grid.addColumn(dispute -> UIUtils.formatAmount(dispute.getAmount()))
+                .setHeader("Amount")
+                .setSortable(true)
+                .setComparator(Dispute::getAmount)
+                .setWidth("120px");
+        grid.addColumn(new LocalDateRenderer<>(Dispute::getDate, "MMM dd, yyyy"))
+                .setAutoWidth(true)
+                .setComparator(Dispute::getDate)
+                .setFlexGrow(0)
+                .setHeader("Date");
+        grid.addColumn(Dispute::getMerchant)
+                .setHeader("Merchant")
+                .setSortable(true)
+                .setWidth("200px");
+
+        // Add action buttons
+        grid.addComponentColumn(dispute -> {
+            HorizontalLayout actions = new HorizontalLayout();
+
+            Button viewButton = UIUtils.createSmallButton("View");
+            viewButton.addClickListener(e -> {
+                viewDetails(dispute);
+            });
+
+            Button updateButton = UIUtils.createSmallButton("Update");
+            updateButton.addClickListener(e -> {
+                // Logic to update dispute would go here
+                // For demo purposes, we'll just show a notification
+                UIUtils.showNotification("Update form for dispute " + dispute.getDisputeId() + " would open here");
+            });
+
+            actions.add(viewButton, updateButton);
+            return actions;
+        }).setHeader("Actions").setWidth("150px");
+
+        return grid;
+    }
+
+    private Component createStatusBadge(Dispute dispute) {
+        String status = dispute.getStatus();
+        BadgeColor color;
+
+        switch (status) {
+            case "Resolved":
+                color = BadgeColor.SUCCESS;
+                break;
+            case "Rejected":
+                color = BadgeColor.ERROR;
+                break;
+            case "In Progress":
+                color = BadgeColor.CONTRAST;
+                break;
+            case "Pending Documentation":
+                color = BadgeColor.CONTRAST;
+                break;
+            default:
+                color = BadgeColor.NORMAL;
+        }
+
+        return new Badge(status, color, BadgeSize.S, BadgeShape.PILL);
+    }
+
+    private DisputeMobileTemplate getMobileTemplate(Dispute dispute) {
+        return new DisputeMobileTemplate(dispute);
+    }
+
+    private void viewDetails(Dispute dispute) {
+        // Navigate to dispute details view
+        // UI.getCurrent().navigate(DisputeDetails.class, dispute.getDisputeId());
+        // For demo purposes, we'll just show a notification
+        UIUtils.showNotification("Viewing details for dispute: " + dispute.getDisputeId());
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        getUI().ifPresent(ui -> {
+            Page page = ui.getPage();
+            resizeListener = page.addBrowserWindowResizeListener(event -> updateVisibleColumns(event.getWidth()));
+            page.retrieveExtendedClientDetails(details -> updateVisibleColumns(details.getBodyClientWidth()));
+        });
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        resizeListener.remove();
+        super.onDetach(detachEvent);
+    }
+
+    private void updateVisibleColumns(int width) {
+        boolean mobile = width < MOBILE_BREAKPOINT;
+        List<Grid.Column<Dispute>> columns = grid.getColumns();
+
+        // "Mobile" column
+        columns.get(0).setVisible(mobile);
+
+        // "Desktop" columns
+        for (int i = 1; i < columns.size(); i++) {
+            columns.get(i).setVisible(!mobile);
+        }
+    }
+
+    private void applyFilters() {
+        dataProvider.clearFilters();
+
+        // Apply dispute ID filter
+        if (disputeIdFilter.getValue() != null && !disputeIdFilter.getValue().isEmpty()) {
+            String disputeIdValue = disputeIdFilter.getValue().toLowerCase();
+            dataProvider.addFilter(dispute -> 
+                dispute.getDisputeId() != null && 
+                dispute.getDisputeId().toLowerCase().contains(disputeIdValue));
+        }
+
+        // Apply card number filter
+        if (cardNumberFilter.getValue() != null && !cardNumberFilter.getValue().isEmpty()) {
+            String cardNumberValue = cardNumberFilter.getValue().toLowerCase();
+            dataProvider.addFilter(dispute -> 
+                dispute.getCardNumber() != null && 
+                dispute.getCardNumber().toLowerCase().contains(cardNumberValue));
+        }
+
+        // Apply card holder name filter
+        if (cardHolderNameFilter.getValue() != null && !cardHolderNameFilter.getValue().isEmpty()) {
+            String cardHolderNameValue = cardHolderNameFilter.getValue().toLowerCase();
+            dataProvider.addFilter(dispute -> 
+                dispute.getCardHolderName() != null && 
+                dispute.getCardHolderName().toLowerCase().contains(cardHolderNameValue));
+        }
+
+        // Apply status filter
+        if (statusFilter.getValue() != null) {
+            String statusValue = statusFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getStatus() != null && 
+                dispute.getStatus().equals(statusValue));
+        }
+
+        // Apply type filter
+        if (typeFilter.getValue() != null) {
+            String typeValue = typeFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getType() != null && 
+                dispute.getType().equals(typeValue));
+        }
+
+        // Apply amount from filter
+        if (amountFromFilter.getValue() != null) {
+            Double amountFromValue = amountFromFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getAmount() != null && 
+                dispute.getAmount() >= amountFromValue);
+        }
+
+        // Apply amount to filter
+        if (amountToFilter.getValue() != null) {
+            Double amountToValue = amountToFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getAmount() != null && 
+                dispute.getAmount() <= amountToValue);
+        }
+
+        // Apply date from filter
+        if (dateFromFilter.getValue() != null) {
+            LocalDate fromDate = dateFromFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getDate() != null && 
+                !dispute.getDate().isBefore(fromDate));
+        }
+
+        // Apply date to filter
+        if (dateToFilter.getValue() != null) {
+            LocalDate toDate = dateToFilter.getValue();
+            dataProvider.addFilter(dispute -> 
+                dispute.getDate() != null && 
+                !dispute.getDate().isAfter(toDate));
+        }
+    }
+
+    private void clearFilters() {
+        // Clear all filter fields
+        disputeIdFilter.clear();
+        cardNumberFilter.clear();
+        cardHolderNameFilter.clear();
+        statusFilter.clear();
+        typeFilter.clear();
+        amountFromFilter.clear();
+        amountToFilter.clear();
+        dateFromFilter.clear();
+        dateToFilter.clear();
+
+        // Clear all filters from data provider
+        dataProvider.clearFilters();
+    }
+
+    // Dummy data for demonstration
+    private List<Dispute> getDummyDisputes() {
+        List<Dispute> disputes = new ArrayList<>();
+
+        disputes.add(new Dispute("DSP001", "4532123456781234", "John Smith", "In Progress", "Unauthorized Transaction", 125.50, LocalDate.now().minusDays(5), "Online Store Inc."));
+        disputes.add(new Dispute("DSP002", "4532123456781235", "John Smith", "Resolved", "Duplicate Charge", 75.00, LocalDate.now().minusDays(15), "Subscription Service"));
+        disputes.add(new Dispute("DSP003", "4532123456781236", "Jane Doe", "Pending Documentation", "Merchandise Not Received", 349.99, LocalDate.now().minusDays(3), "Electronics Shop"));
+        disputes.add(new Dispute("DSP004", "4532123456781237", "Jane Doe", "Rejected", "Incorrect Amount", 50.00, LocalDate.now().minusDays(20), "Restaurant Chain"));
+        disputes.add(new Dispute("DSP005", "4532123456781238", "Robert Johnson", "New", "Defective Merchandise", 199.95, LocalDate.now().minusDays(1), "Furniture Store"));
+        disputes.add(new Dispute("DSP006", "4532123456781239", "Sarah Williams", "In Progress", "Unauthorized Transaction", 1250.00, LocalDate.now().minusDays(7), "Travel Agency"));
+        disputes.add(new Dispute("DSP007", "4532123456781240", "Michael Brown", "Pending Documentation", "Other", 89.99, LocalDate.now().minusDays(10), "Streaming Service"));
+        disputes.add(new Dispute("DSP008", "4532123456781241", "Emily Davis", "Resolved", "Duplicate Charge", 45.50, LocalDate.now().minusDays(25), "Gas Station"));
+        disputes.add(new Dispute("DSP009", "4532123456781242", "David Miller", "In Progress", "Merchandise Not Received", 799.00, LocalDate.now().minusDays(8), "Computer Store"));
+        disputes.add(new Dispute("DSP010", "4532123456781243", "Jennifer Wilson", "Rejected", "Incorrect Amount", 120.75, LocalDate.now().minusDays(18), "Department Store"));
+
+        return disputes;
+    }
+
+    /**
+     * A layout for displaying Dispute info in a mobile friendly format.
+     */
+    private class DisputeMobileTemplate extends FlexBoxLayout {
+
+        private Dispute dispute;
+
+        public DisputeMobileTemplate(Dispute dispute) {
+            this.dispute = dispute;
+
+            UIUtils.setLineHeight(LineHeight.M, this);
+            UIUtils.setPointerEvents(PointerEvents.NONE, this);
+
+            setPadding(Vertical.S);
+            setSpacing(Right.L);
+
+            Span disputeId = new Span(dispute.getDisputeId());
+            UIUtils.setFontSize(FontSize.S, disputeId);
+            UIUtils.setTextColor(TextColor.SECONDARY, disputeId);
+
+            Span cardInfo = new Span(dispute.getCardNumber() + " - " + dispute.getCardHolderName());
+            UIUtils.setFontSize(FontSize.M, cardInfo);
+            UIUtils.setTextColor(TextColor.BODY, cardInfo);
+
+            Span type = new Span(dispute.getType());
+            UIUtils.setFontSize(FontSize.S, type);
+            UIUtils.setTextColor(TextColor.SECONDARY, type);
+
+            Component statusBadge = createStatusBadge(dispute);
+
+            Span amount = new Span("$" + dispute.getAmount());
+            UIUtils.setFontSize(FontSize.M, amount);
+            UIUtils.setTextColor(TextColor.SUCCESS, amount);
+
+            Span date = new Span(dispute.getDate().format(java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+            UIUtils.setFontSize(FontSize.XS, date);
+            UIUtils.setTextColor(TextColor.TERTIARY, date);
+
+            FlexBoxLayout column = new FlexBoxLayout(disputeId, cardInfo, type, statusBadge, amount, date);
+            column.setFlexDirection(FlexDirection.COLUMN);
+            column.setOverflow(Overflow.HIDDEN);
+            column.setSpacing(Vertical.XS);
+
+            add(column);
+            setFlexGrow(1, column);
+        }
+    }
+
+    /**
+     * Class representing a card dispute.
+     */
+    public static class Dispute {
+        private String disputeId;
+        private String cardNumber;
+        private String cardHolderName;
+        private String status;
+        private String type;
+        private Double amount;
+        private LocalDate date;
+        private String merchant;
+        private String description;
+
+        public Dispute(String disputeId, String cardNumber, String cardHolderName, String status, 
+                      String type, Double amount, LocalDate date, String merchant) {
+            this.disputeId = disputeId;
+            this.cardNumber = cardNumber;
+            this.cardHolderName = cardHolderName;
+            this.status = status;
+            this.type = type;
+            this.amount = amount;
+            this.date = date;
+            this.merchant = merchant;
+        }
+
+        public String getDisputeId() {
+            return disputeId;
+        }
+
+        public void setDisputeId(String disputeId) {
+            this.disputeId = disputeId;
+        }
+
+        public String getCardNumber() {
+            return cardNumber;
+        }
+
+        public void setCardNumber(String cardNumber) {
+            this.cardNumber = cardNumber;
+        }
+
+        public String getCardHolderName() {
+            return cardHolderName;
+        }
+
+        public void setCardHolderName(String cardHolderName) {
+            this.cardHolderName = cardHolderName;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public Double getAmount() {
+            return amount;
+        }
+
+        public void setAmount(Double amount) {
+            this.amount = amount;
+        }
+
+        public LocalDate getDate() {
+            return date;
+        }
+
+        public void setDate(LocalDate date) {
+            this.date = date;
+        }
+
+        public String getMerchant() {
+            return merchant;
+        }
+
+        public void setMerchant(String merchant) {
+            this.merchant = merchant;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+    }
+}
