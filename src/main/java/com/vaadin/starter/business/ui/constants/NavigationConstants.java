@@ -95,4 +95,14 @@ public class NavigationConstants {
     public static final String WORK_QUEUE = "Work Queue";
     public static final String SLA_TRACKING = "SLA Tracking";
     public static final String TEAM_PERFORMANCE = "Team Performance";
+
+    // Distributors
+    public static final String DISTRIBUTORS = "Distributors";
+    public static final String DISTRIBUTOR_MANAGEMENT = "Distributor Management";
+    public static final String ITEMS = "Items";
+    public static final String DISTRIBUTOR_USERS = "Distributor Users";
+
+    // Client Management
+    public static final String CLIENT_MANAGEMENT = "Client Management";
+    public static final String CONTRACTS = "Contracts";
 }

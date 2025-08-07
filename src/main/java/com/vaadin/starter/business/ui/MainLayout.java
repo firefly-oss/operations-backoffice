@@ -24,18 +24,17 @@ import com.vaadin.starter.business.ui.constants.NavigationConstants;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.util.css.Overflow;
 import com.vaadin.starter.business.ui.views.Home;
-import com.vaadin.starter.business.ui.views.cashmanagement.CashPositions;
-import com.vaadin.starter.business.ui.views.cashmanagement.CurrencyExchange;
-import com.vaadin.starter.business.ui.views.cashmanagement.LiquidityManagement;
-import com.vaadin.starter.business.ui.views.cashmanagement.TreasuryOperations;
-import com.vaadin.starter.business.ui.views.customerservice.CaseManagement;
-import com.vaadin.starter.business.ui.views.customerservice.CustomerRequests;
-import com.vaadin.starter.business.ui.views.customerservice.IncidentManagement;
-import com.vaadin.starter.business.ui.views.customerservice.ServiceTickets;
 import com.vaadin.starter.business.ui.views.dashboard.DailyPerformanceMetrics;
 import com.vaadin.starter.business.ui.views.dashboard.OperationalAlerts;
 import com.vaadin.starter.business.ui.views.dashboard.OperationsOverview;
 import com.vaadin.starter.business.ui.views.dashboard.ServiceLevelIndicators;
+import com.vaadin.starter.business.ui.views.distributors.DistributorManagement;
+import com.vaadin.starter.business.ui.views.distributors.DistributorUsers;
+import com.vaadin.starter.business.ui.views.distributors.Items;
+import com.vaadin.starter.business.ui.views.clients.AmlKycCases;
+import com.vaadin.starter.business.ui.views.clients.ClientManagement;
+import com.vaadin.starter.business.ui.views.clients.Contracts;
+import com.vaadin.starter.business.ui.views.clients.OnboardingProcesses;
 import com.vaadin.starter.business.ui.views.transactions.BatchOperations;
 import com.vaadin.starter.business.ui.views.transactions.PaymentProcessing;
 import com.vaadin.starter.business.ui.views.transactions.TransactionReconciliation;
@@ -142,121 +141,22 @@ public class MainLayout extends FlexBoxLayout
 		menu.addNaviItem(dashboard, NavigationConstants.OPERATIONAL_ALERTS, OperationalAlerts.class);
 		dashboard.setSubItemsVisible(false);
 
-		NaviItem transactions = menu.addNaviItem(VaadinIcon.EXCHANGE, NavigationConstants.TRANSACTION_MANAGEMENT,
+		NaviItem distributors = menu.addNaviItem(VaadinIcon.PACKAGE, NavigationConstants.DISTRIBUTORS,
 				null);
-		transactions.setTitle(NavigationConstants.TRANSACTION_MANAGEMENT);
-		menu.addNaviItem(transactions, NavigationConstants.TRANSACTION_SEARCH_MONITORING, TransactionSearchMonitoring.class);
-		menu.addNaviItem(transactions, NavigationConstants.PAYMENT_PROCESSING, PaymentProcessing.class);
-		menu.addNaviItem(transactions, NavigationConstants.TRANSACTION_RECONCILIATION, TransactionReconciliation.class);
-		menu.addNaviItem(transactions, NavigationConstants.BATCH_OPERATIONS, BatchOperations.class);
-		transactions.setSubItemsVisible(false);
+		distributors.setTitle(NavigationConstants.DISTRIBUTORS);
+		menu.addNaviItem(distributors, NavigationConstants.DISTRIBUTOR_MANAGEMENT, DistributorManagement.class);
+		menu.addNaviItem(distributors, NavigationConstants.ITEMS, Items.class);
+		menu.addNaviItem(distributors, NavigationConstants.DISTRIBUTOR_USERS, DistributorUsers.class);
+		distributors.setSubItemsVisible(false);
 
-		NaviItem cashManagement = menu.addNaviItem(VaadinIcon.WALLET, NavigationConstants.CASH_MANAGEMENT,
+		NaviItem clients = menu.addNaviItem(VaadinIcon.USERS, NavigationConstants.CLIENTS,
 				null);
-		cashManagement.setTitle(NavigationConstants.CASH_MANAGEMENT);
-		menu.addNaviItem(cashManagement, NavigationConstants.CASH_POSITIONS, CashPositions.class);
-		menu.addNaviItem(cashManagement, NavigationConstants.LIQUIDITY_MANAGEMENT, LiquidityManagement.class);
-		menu.addNaviItem(cashManagement, NavigationConstants.TREASURY_OPERATIONS, TreasuryOperations.class);
-		menu.addNaviItem(cashManagement, NavigationConstants.CURRENCY_EXCHANGE, CurrencyExchange.class);
-		cashManagement.setSubItemsVisible(false);
-
-		NaviItem accountOperations = menu.addNaviItem(VaadinIcon.PIGGY_BANK, NavigationConstants.ACCOUNT_OPERATIONS,
-				null);
-		accountOperations.setTitle(NavigationConstants.ACCOUNT_OPERATIONS);
-		menu.addNaviItem(accountOperations, NavigationConstants.ACCOUNT_MAINTENANCE, 
-				com.vaadin.starter.business.ui.views.accountoperations.AccountMaintenance.class);
-		menu.addNaviItem(accountOperations, NavigationConstants.STANDING_ORDERS, 
-				com.vaadin.starter.business.ui.views.accountoperations.StandingOrders.class);
-		menu.addNaviItem(accountOperations, NavigationConstants.DIRECT_DEBITS, 
-				com.vaadin.starter.business.ui.views.accountoperations.DirectDebits.class);
-		menu.addNaviItem(accountOperations, NavigationConstants.ACCOUNT_BLOCKING, 
-				com.vaadin.starter.business.ui.views.accountoperations.AccountBlocking.class);
-		accountOperations.setSubItemsVisible(false);
-
-		NaviItem cardOperations = menu.addNaviItem(VaadinIcon.CREDIT_CARD, NavigationConstants.CARD_OPERATIONS,
-				null);
-		cardOperations.setTitle(NavigationConstants.CARD_OPERATIONS);
-		menu.addNaviItem(cardOperations, NavigationConstants.CARD_ISSUANCE, 
-				com.vaadin.starter.business.ui.views.cardoperations.CardIssuance.class);
-		menu.addNaviItem(cardOperations, NavigationConstants.CARD_ACTIVATION, 
-				com.vaadin.starter.business.ui.views.cardoperations.CardActivation.class);
-		menu.addNaviItem(cardOperations, NavigationConstants.DISPUTES_MANAGEMENT, 
-				com.vaadin.starter.business.ui.views.cardoperations.DisputesManagement.class);
-		menu.addNaviItem(cardOperations, NavigationConstants.REPLACEMENT_REQUESTS, 
-				com.vaadin.starter.business.ui.views.cardoperations.ReplacementRequests.class);
-		cardOperations.setSubItemsVisible(false);
-
-		NaviItem loanOperations = menu.addNaviItem(VaadinIcon.MONEY_EXCHANGE, NavigationConstants.LOAN_OPERATIONS,
-				null);
-		loanOperations.setTitle(NavigationConstants.LOAN_OPERATIONS);
-		menu.addNaviItem(loanOperations, NavigationConstants.APPLICATION_PROCESSING, 
-				com.vaadin.starter.business.ui.views.loanoperations.ApplicationProcessing.class);
-		menu.addNaviItem(loanOperations, NavigationConstants.DISBURSEMENTS, 
-				com.vaadin.starter.business.ui.views.loanoperations.Disbursements.class);
-		menu.addNaviItem(loanOperations, NavigationConstants.COLLECTIONS, 
-				com.vaadin.starter.business.ui.views.loanoperations.Collections.class);
-		menu.addNaviItem(loanOperations, NavigationConstants.RESTRUCTURING, 
-				com.vaadin.starter.business.ui.views.loanoperations.Restructuring.class);
-		loanOperations.setSubItemsVisible(false);
-
-		NaviItem customerService = menu.addNaviItem(VaadinIcon.USER_HEART, NavigationConstants.CUSTOMER_SERVICE,
-				null);
-		customerService.setTitle(NavigationConstants.CUSTOMER_SERVICE);
-		menu.addNaviItem(customerService, NavigationConstants.CASE_MANAGEMENT, CaseManagement.class);
-		menu.addNaviItem(customerService, NavigationConstants.CUSTOMER_REQUESTS, CustomerRequests.class);
-		menu.addNaviItem(customerService, NavigationConstants.INCIDENT_MANAGEMENT, IncidentManagement.class);
-		menu.addNaviItem(customerService, NavigationConstants.SERVICE_TICKETS, ServiceTickets.class);
-		customerService.setSubItemsVisible(false);
-
-		NaviItem fraudRiskOperations = menu.addNaviItem(VaadinIcon.SHIELD, NavigationConstants.FRAUD_RISK_OPERATIONS,
-				null);
-		fraudRiskOperations.setTitle(NavigationConstants.FRAUD_RISK_OPERATIONS);
-		menu.addNaviItem(fraudRiskOperations, NavigationConstants.SUSPICIOUS_ACTIVITY_MONITORING, 
-				com.vaadin.starter.business.ui.views.fraudriskoperations.SuspiciousActivityMonitoring.class);
-		menu.addNaviItem(fraudRiskOperations, NavigationConstants.INVESTIGATIONS, 
-				com.vaadin.starter.business.ui.views.fraudriskoperations.Investigations.class);
-		menu.addNaviItem(fraudRiskOperations, NavigationConstants.AML_KYC_CASES, 
-				com.vaadin.starter.business.ui.views.fraudriskoperations.AmlKycCases.class);
-		menu.addNaviItem(fraudRiskOperations, NavigationConstants.RISK_ALERTS_MANAGEMENT, 
-				com.vaadin.starter.business.ui.views.fraudriskoperations.RiskAlertsManagement.class);
-		fraudRiskOperations.setSubItemsVisible(false);
-
-		NaviItem documentManagement = menu.addNaviItem(VaadinIcon.FILE_TEXT, NavigationConstants.DOCUMENT_MANAGEMENT,
-				null);
-		documentManagement.setTitle(NavigationConstants.DOCUMENT_MANAGEMENT);
-		menu.addNaviItem(documentManagement, NavigationConstants.CUSTOMER_DOCUMENTATION, 
-				com.vaadin.starter.business.ui.views.documentmanagement.CustomerDocumentation.class);
-		menu.addNaviItem(documentManagement, NavigationConstants.TRANSACTION_DOCUMENTS, 
-				com.vaadin.starter.business.ui.views.documentmanagement.TransactionDocuments.class);
-		menu.addNaviItem(documentManagement, NavigationConstants.SIGNATURES_AUTHORIZATIONS, 
-				com.vaadin.starter.business.ui.views.documentmanagement.SignaturesAuthorizations.class);
-		menu.addNaviItem(documentManagement, NavigationConstants.DOCUMENT_TRACKING, 
-				com.vaadin.starter.business.ui.views.documentmanagement.DocumentTracking.class);
-		documentManagement.setSubItemsVisible(false);
-
-		NaviItem reportingAnalytics = menu.addNaviItem(VaadinIcon.CHART, NavigationConstants.REPORTING_ANALYTICS,
-				null);
-		reportingAnalytics.setTitle(NavigationConstants.REPORTING_ANALYTICS);
-		menu.addNaviItem(reportingAnalytics, NavigationConstants.OPERATIONAL_REPORTS, 
-				com.vaadin.starter.business.ui.views.reportinganalytics.OperationalReports.class);
-		menu.addNaviItem(reportingAnalytics, NavigationConstants.COMPLIANCE_REPORTING, 
-				com.vaadin.starter.business.ui.views.reportinganalytics.ComplianceReporting.class);
-		menu.addNaviItem(reportingAnalytics, NavigationConstants.AUDIT_TRAILS, 
-				com.vaadin.starter.business.ui.views.reportinganalytics.AuditTrails.class);
-		menu.addNaviItem(reportingAnalytics, NavigationConstants.PERFORMANCE_ANALYTICS, 
-				com.vaadin.starter.business.ui.views.reportinganalytics.PerformanceAnalytics.class);
-		reportingAnalytics.setSubItemsVisible(false);
-
-		NaviItem taskManagement = menu.addNaviItem(VaadinIcon.TASKS, NavigationConstants.TASK_MANAGEMENT,
-				null);
-		taskManagement.setTitle(NavigationConstants.TASK_MANAGEMENT);
-		menu.addNaviItem(taskManagement, NavigationConstants.WORK_QUEUE, 
-				com.vaadin.starter.business.ui.views.taskmanagement.WorkQueue.class);
-		menu.addNaviItem(taskManagement, NavigationConstants.SLA_TRACKING,
-				com.vaadin.starter.business.ui.views.taskmanagement.SLATracking.class);
-		menu.addNaviItem(taskManagement, NavigationConstants.TEAM_PERFORMANCE, 
-				com.vaadin.starter.business.ui.views.taskmanagement.TeamPerformance.class);
-		taskManagement.setSubItemsVisible(false);
+		clients.setTitle(NavigationConstants.CLIENTS);
+		menu.addNaviItem(clients, NavigationConstants.CLIENT_MANAGEMENT, ClientManagement.class);
+		menu.addNaviItem(clients, NavigationConstants.CONTRACTS, Contracts.class);
+		menu.addNaviItem(clients, NavigationConstants.ONBOARDING_PROCESSES, OnboardingProcesses.class);
+		menu.addNaviItem(clients, NavigationConstants.AML_KYC_CASES, AmlKycCases.class);
+		clients.setSubItemsVisible(false);
 	}
 
 	/**
