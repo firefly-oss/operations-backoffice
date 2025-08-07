@@ -41,6 +41,7 @@ public class AppBar extends FlexBoxLayout {
 
 	private H4 title;
 	private FlexBoxLayout actionItems;
+	private Button helpIcon;
 	private Image avatar;
 
 	private FlexBoxLayout tabContainer;
@@ -62,6 +63,7 @@ public class AppBar extends FlexBoxLayout {
 		initContextIcon();
 		initTitle(title);
 		initSearch();
+		initHelpIcon();
 		initAvatar();
 		initActionItems();
 		initContainer();
@@ -107,6 +109,14 @@ public class AppBar extends FlexBoxLayout {
 		search.setVisible(false);
 	}
 
+	private void initHelpIcon() {
+		helpIcon = UIUtils.createTertiaryInlineButton(VaadinIcon.QUESTION_CIRCLE);
+		helpIcon.addClassName(CLASS_NAME + "__help-icon");
+		helpIcon.addClickListener(e -> helpIcon.getUI().ifPresent(ui -> ui.navigate("help")));
+		UIUtils.setAriaLabel("Help", helpIcon);
+		UIUtils.setLineHeight("1", helpIcon);
+	}
+
 	private void initAvatar() {
 		avatar = new Image();
 		avatar.setClassName(CLASS_NAME + "__avatar");
@@ -131,7 +141,7 @@ public class AppBar extends FlexBoxLayout {
 
 	private void initContainer() {
 		container = new FlexBoxLayout(menuIcon, contextIcon, this.title, search,
-				actionItems, avatar);
+				actionItems, helpIcon, avatar);
 		container.addClassName(CLASS_NAME + "__container");
 		container.setAlignItems(FlexComponent.Alignment.CENTER);
 		container.setFlexGrow(1, search);

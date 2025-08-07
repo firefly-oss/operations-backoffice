@@ -46,13 +46,20 @@
   padding-top: 0;
 }
 
+/* Help icon */
+.app-bar__help-icon {
+	flex-shrink: 0;
+	margin-left: var(--lumo-space-m);
+	margin-right: var(--lumo-space-s);
+}
+
 /* Avatar */
 .app-bar__avatar {
-  border-radius: 100%;
-  flex-shrink: 0;
-  height: var(--lumo-size-s);
-  margin-left: var(--lumo-space-m);
-  width: var(--lumo-size-s);
+	border-radius: 100%;
+	flex-shrink: 0;
+	height: var(--lumo-size-s);
+	margin-left: var(--lumo-space-s);
+	width: var(--lumo-size-s);
 }
 
 /* Tabs */

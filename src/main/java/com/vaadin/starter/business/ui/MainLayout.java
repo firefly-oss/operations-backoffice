@@ -10,6 +10,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.server.ErrorHandler;
 import com.vaadin.flow.server.VaadinSession;
@@ -297,6 +298,17 @@ public class MainLayout extends FlexBoxLayout
 		NaviItem active = getActiveItem(e);
 		if (active != null) {
 			getAppBar().setTitle(active.getText());
+		} else {
+			// If no active NaviItem is found, try to get the title from @PageTitle annotation
+			String target = e.getLocation().getFirstSegment();
+			if (target != null && !target.isEmpty()) {
+				e.getActiveChain().forEach(component -> {
+					PageTitle pageTitle = component.getClass().getAnnotation(PageTitle.class);
+					if (pageTitle != null) {
+						getAppBar().setTitle(pageTitle.value());
+					}
+				});
+			}
 		}
 	}
 
