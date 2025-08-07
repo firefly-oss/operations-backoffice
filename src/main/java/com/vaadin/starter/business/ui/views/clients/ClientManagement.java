@@ -219,29 +219,32 @@ public class ClientManagement extends ViewFrame {
         layout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 
         // Create view details button with eye icon
-        Button viewDetailsButton = UIUtils.createButton(VaadinIcon.EYE);
+        Button viewDetailsButton = UIUtils.createPastelButton(VaadinIcon.EYE);
         viewDetailsButton.addClickListener(e -> showDetails(client));
-        viewDetailsButton.getElement().getThemeList().add("small");
-        viewDetailsButton.getElement().getThemeList().add("tertiary");
         viewDetailsButton.getElement().setAttribute("title", "View Details");
-        viewDetailsButton.getStyle().set("cursor", "pointer");
+
+        // Create dashboard button with dashboard icon
+        Button dashboardButton = UIUtils.createPastelButton(VaadinIcon.DASHBOARD);
+        dashboardButton.addClickListener(e -> navigateToClientDashboard(client));
+        dashboardButton.getElement().setAttribute("title", "Client Dashboard");
 
         // Create delete button with trash icon
-        Button deleteButton = UIUtils.createButton(VaadinIcon.TRASH);
+        Button deleteButton = UIUtils.createPastelErrorButton(VaadinIcon.TRASH);
         deleteButton.addClickListener(e -> deleteClient(client));
-        deleteButton.getElement().getThemeList().add("small");
-        deleteButton.getElement().getThemeList().add("error");
-        deleteButton.getElement().getThemeList().add("tertiary");
         deleteButton.getElement().setAttribute("title", "Delete");
-        deleteButton.getStyle().set("cursor", "pointer");
 
-        layout.add(viewDetailsButton, deleteButton);
+        layout.add(viewDetailsButton, dashboardButton, deleteButton);
         return layout;
     }
 
     private void showDetails(Client client) {
         ClientDetails clientDetails = new ClientDetails(client);
         clientDetails.open();
+    }
+
+    private void navigateToClientDashboard(Client client) {
+        // Navigate to the client dashboard view with the client ID as a parameter
+        UI.getCurrent().navigate(ClientDashboard.class, client.getClientId());
     }
 
     private void deleteClient(Client client) {

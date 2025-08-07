@@ -232,21 +232,14 @@ public class Contracts extends ViewFrame {
         layout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 
         // Create view details button with eye icon
-        Button viewDetailsButton = UIUtils.createButton(VaadinIcon.EYE);
+        Button viewDetailsButton = UIUtils.createPastelButton(VaadinIcon.EYE);
         viewDetailsButton.addClickListener(e -> showDetails(contract));
-        viewDetailsButton.getElement().getThemeList().add("small");
-        viewDetailsButton.getElement().getThemeList().add("tertiary");
         viewDetailsButton.getElement().setAttribute("title", "View Details");
-        viewDetailsButton.getStyle().set("cursor", "pointer");
 
         // Create delete button with trash icon
-        Button deleteButton = UIUtils.createButton(VaadinIcon.TRASH);
+        Button deleteButton = UIUtils.createPastelErrorButton(VaadinIcon.TRASH);
         deleteButton.addClickListener(e -> deleteContract(contract));
-        deleteButton.getElement().getThemeList().add("small");
-        deleteButton.getElement().getThemeList().add("error");
-        deleteButton.getElement().getThemeList().add("tertiary");
         deleteButton.getElement().setAttribute("title", "Delete");
-        deleteButton.getStyle().set("cursor", "pointer");
 
         layout.add(viewDetailsButton, deleteButton);
         return layout;

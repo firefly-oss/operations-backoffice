@@ -413,13 +413,16 @@ public class AmlKycCases extends ViewFrame {
 
     private Component createAmlCaseActions(AmlCase amlCase) {
         HorizontalLayout actions = new HorizontalLayout();
+        actions.setSpacing(true);
+        actions.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        actions.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 
-        Button viewButton = UIUtils.createButton(VaadinIcon.EYE, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        viewButton.getElement().setAttribute("aria-label", "View details");
+        Button viewButton = UIUtils.createPastelButton(VaadinIcon.EYE);
+        viewButton.getElement().setAttribute("title", "View details");
         viewButton.addClickListener(e -> showAmlCaseDetails(amlCase));
 
-        Button deleteButton = UIUtils.createButton(VaadinIcon.TRASH, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
-        deleteButton.getElement().setAttribute("aria-label", "Delete");
+        Button deleteButton = UIUtils.createPastelErrorButton(VaadinIcon.TRASH);
+        deleteButton.getElement().setAttribute("title", "Delete");
         deleteButton.addClickListener(e -> deleteAmlCase(amlCase));
 
         actions.add(viewButton, deleteButton);
@@ -428,13 +431,16 @@ public class AmlKycCases extends ViewFrame {
 
     private Component createKycCaseActions(KycCase kycCase) {
         HorizontalLayout actions = new HorizontalLayout();
+        actions.setSpacing(true);
+        actions.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        actions.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 
-        Button viewButton = UIUtils.createButton(VaadinIcon.EYE, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        viewButton.getElement().setAttribute("aria-label", "View details");
+        Button viewButton = UIUtils.createPastelButton(VaadinIcon.EYE);
+        viewButton.getElement().setAttribute("title", "View details");
         viewButton.addClickListener(e -> showKycCaseDetails(kycCase));
 
-        Button deleteButton = UIUtils.createButton(VaadinIcon.TRASH, ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
-        deleteButton.getElement().setAttribute("aria-label", "Delete");
+        Button deleteButton = UIUtils.createPastelErrorButton(VaadinIcon.TRASH);
+        deleteButton.getElement().setAttribute("title", "Delete");
         deleteButton.addClickListener(e -> deleteKycCase(kycCase));
 
         actions.add(viewButton, deleteButton);

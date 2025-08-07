@@ -192,6 +192,7 @@ public class UIUtils {
 		Button button = new Button(text);
 		button.addThemeVariants(variants);
 		button.getElement().setAttribute("aria-label", text);
+		setCursorPointer(button);
 		return button;
 	}
 
@@ -201,6 +202,7 @@ public class UIUtils {
 	                                  ButtonVariant... variants) {
 		Button button = new Button(new Icon(icon));
 		button.addThemeVariants(variants);
+		setCursorPointer(button);
 		return button;
 	}
 
@@ -212,6 +214,7 @@ public class UIUtils {
 		i.getElement().setAttribute("slot", "prefix");
 		Button button = new Button(text, i);
 		button.addThemeVariants(variants);
+		setCursorPointer(button);
 		return button;
 	}
 
@@ -402,6 +405,27 @@ public class UIUtils {
 		Notification.show(text, 3000, Notification.Position.BOTTOM_CENTER);
 	}
 
+	/* === PASTEL BUTTONS === */
+
+	public static Button createPastelButton(VaadinIcon icon) {
+		Button button = createButton(icon, ButtonVariant.LUMO_TERTIARY);
+		button.getElement().getThemeList().add("small");
+		button.getStyle().set("background-color", LumoStyles.Color.Primary._10);
+		button.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+		button.getStyle().set("cursor", "pointer");
+		return button;
+	}
+
+	public static Button createPastelErrorButton(VaadinIcon icon) {
+		Button button = createButton(icon, ButtonVariant.LUMO_TERTIARY);
+		button.getElement().getThemeList().add("small");
+		button.getStyle().set("background-color", LumoStyles.Color.Error._10);
+		button.getStyle().set("color", LumoStyles.Color.Error._100);
+		button.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+		button.getStyle().set("cursor", "pointer");
+		return button;
+	}
+
 	/* === CSS UTILITIES === */
 
 	public static void setAlignSelf(AlignSelf alignSelf,
@@ -554,6 +578,12 @@ public class UIUtils {
 	public static void setAriaLabel(String value, Component... components) {
 		for (Component component : components) {
 			component.getElement().setAttribute("aria-label", value);
+		}
+	}
+
+	public static void setCursorPointer(Component... components) {
+		for (Component component : components) {
+			component.getElement().getStyle().set("cursor", "pointer");
 		}
 	}
 
