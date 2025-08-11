@@ -11,7 +11,7 @@ import com.vaadin.starter.business.ui.layout.size.Horizontal;
 import com.vaadin.starter.business.ui.layout.size.Uniform;
 
 @PageTitle("Operations Backoffice")
-@Route(value = "", layout = MainLayout.class)
+@Route(value = "home", layout = MainLayout.class)
 public class Home extends ViewFrame {
 
 	public Home() {

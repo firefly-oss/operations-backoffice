@@ -218,11 +218,6 @@ public class ClientManagement extends ViewFrame {
         layout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         layout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 
-        // Create view details button with eye icon
-        Button viewDetailsButton = UIUtils.createPastelButton(VaadinIcon.EYE);
-        viewDetailsButton.addClickListener(e -> showDetails(client));
-        viewDetailsButton.getElement().setAttribute("title", "View Details");
-
         // Create dashboard button with dashboard icon
         Button dashboardButton = UIUtils.createPastelButton(VaadinIcon.DASHBOARD);
         dashboardButton.addClickListener(e -> navigateToClientDashboard(client));
@@ -233,7 +228,7 @@ public class ClientManagement extends ViewFrame {
         deleteButton.addClickListener(e -> deleteClient(client));
         deleteButton.getElement().setAttribute("title", "Delete");
 
-        layout.add(viewDetailsButton, dashboardButton, deleteButton);
+        layout.add(dashboardButton, deleteButton);
         return layout;
     }
 

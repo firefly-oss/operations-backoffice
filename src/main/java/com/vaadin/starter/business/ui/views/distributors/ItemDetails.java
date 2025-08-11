@@ -6,6 +6,8 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -120,6 +122,22 @@ public class ItemDetails extends Dialog {
         updateDateField.setReadOnly(true);
         updateDateField.setWidthFull();
 
+        // Product Image
+        Image productImage = new Image(getProductImageUrl(), item.getName());
+        productImage.setWidth("200px");
+        productImage.setHeight("200px");
+        productImage.getStyle().set("object-fit", "contain");
+        productImage.getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+        productImage.getStyle().set("border-radius", "var(--lumo-border-radius)");
+        productImage.getStyle().set("background-color", "var(--lumo-base-color)");
+
+        Div imageContainer = new Div(productImage);
+        imageContainer.getStyle().set("display", "flex");
+        imageContainer.getStyle().set("justify-content", "center");
+        imageContainer.getStyle().set("align-items", "center");
+        imageContainer.getStyle().set("width", "100%");
+        imageContainer.getStyle().set("margin-bottom", "var(--lumo-space-m)");
+
         // Form layout
         FormLayout form = new FormLayout();
         form.addClassNames(LumoStyles.Padding.Bottom.L,
@@ -129,6 +147,10 @@ public class ItemDetails extends Dialog {
                         FormLayout.ResponsiveStep.LabelsPosition.TOP),
                 new FormLayout.ResponsiveStep("600px", 2,
                         FormLayout.ResponsiveStep.LabelsPosition.TOP));
+
+        // Add image at the top
+        form.addFormItem(imageContainer, "Product Image");
+
         form.addFormItem(itemIdField, "Item ID");
         form.addFormItem(itemCodeField, "Item Code");
         form.addFormItem(nameField, "Name");
@@ -169,5 +191,33 @@ public class ItemDetails extends Dialog {
         // Here you would update the item with the new values
         // Example: item.setName(nameField.getValue());
         // itemService.updateItem(item);
+    }
+
+    /**
+     * Generate a mock image URL based on the item's category or name.
+     * In a real application, this would be replaced with actual product images.
+     * 
+     * @return URL of a placeholder image
+     */
+    private String getProductImageUrl() {
+        // Use placeholder images based on category
+        String category = item.getCategory() != null ? item.getCategory().toLowerCase() : "";
+
+        switch (category) {
+            case "electronics":
+                return "https://via.placeholder.com/400x400.png?text=Electronics+" + item.getItemCode();
+            case "clothing":
+                return "https://via.placeholder.com/400x400.png?text=Clothing+" + item.getItemCode();
+            case "food":
+                return "https://via.placeholder.com/400x400.png?text=Food+" + item.getItemCode();
+            case "books":
+                return "https://via.placeholder.com/400x400.png?text=Books+" + item.getItemCode();
+            case "furniture":
+                return "https://via.placeholder.com/400x400.png?text=Furniture+" + item.getItemCode();
+            case "appliances":
+                return "https://via.placeholder.com/400x400.png?text=Appliances+" + item.getItemCode();
+            default:
+                return "https://via.placeholder.com/400x400.png?text=Product+" + item.getItemCode();
+        }
     }
 }

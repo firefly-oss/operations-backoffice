@@ -219,13 +219,23 @@ public class DistributorManagement extends ViewFrame {
         viewDetailsButton.addClickListener(e -> showDetails(distributor));
         viewDetailsButton.getElement().setAttribute("title", "View Details");
 
+        // Create dashboard button with dashboard icon
+        Button dashboardButton = UIUtils.createPastelButton(VaadinIcon.DASHBOARD);
+        dashboardButton.addClickListener(e -> navigateToDistributorDashboard(distributor));
+        dashboardButton.getElement().setAttribute("title", "Distributor Dashboard");
+
         // Create delete button with trash icon
         Button deleteButton = UIUtils.createPastelErrorButton(VaadinIcon.TRASH);
         deleteButton.addClickListener(e -> deleteDistributor(distributor));
         deleteButton.getElement().setAttribute("title", "Delete");
 
-        layout.add(viewDetailsButton, deleteButton);
+        layout.add(viewDetailsButton, dashboardButton, deleteButton);
         return layout;
+    }
+
+    private void navigateToDistributorDashboard(Distributor distributor) {
+        // Navigate to the distributor dashboard view with the distributor ID as parameter
+        getUI().ifPresent(ui -> ui.navigate("distributors/dashboard/" + distributor.getDistributorId()));
     }
 
     private void showDetails(Distributor distributor) {

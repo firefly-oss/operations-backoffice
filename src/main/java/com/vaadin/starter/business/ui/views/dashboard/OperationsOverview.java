@@ -34,8 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-@PageTitle(NavigationConstants.OPERATIONS_OVERVIEW)
-@Route(value = "dashboard/operations-overview", layout = MainLayout.class)
+@PageTitle(NavigationConstants.DASHBOARD)
+@Route(value = "", layout = MainLayout.class)
 public class OperationsOverview extends ViewFrame {
 
     private static final String CLASS_NAME = "operations-overview";

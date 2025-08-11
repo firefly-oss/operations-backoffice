@@ -11,8 +11,8 @@ import com.vaadin.starter.business.ui.layout.size.Horizontal;
 import com.vaadin.starter.business.ui.layout.size.Uniform;
 import com.vaadin.starter.business.ui.views.ViewFrame;
 
-@PageTitle("Dashboard")
-@Route(value = "dashboard", layout = MainLayout.class)
+@PageTitle("Dashboard Introduction")
+@Route(value = "dashboard-intro", layout = MainLayout.class)
 public class Dashboard extends ViewFrame {
 
     public Dashboard() {
@@ -25,7 +25,7 @@ public class Dashboard extends ViewFrame {
 
         Html intro = new Html("<p>Welcome to the Operations Dashboard. This central hub provides real-time insights into your operational metrics and performance indicators.</p>");
 
-        Html instructions = new Html("<p>Use the navigation menu to explore different dashboard sections including Operations Overview, Daily Performance Metrics, Service Level Indicators, and Operational Alerts.</p>");
+        Html instructions = new Html("<p>Use the navigation menu to access the main Dashboard which provides a comprehensive view of your operational metrics and performance indicators.</p>");
 
         FlexBoxLayout content = new FlexBoxLayout(welcome, intro, instructions);
         content.setFlexDirection(FlexDirection.COLUMN);

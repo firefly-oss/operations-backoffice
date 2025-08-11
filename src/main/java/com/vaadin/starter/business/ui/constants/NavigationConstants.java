@@ -97,8 +97,9 @@ public class NavigationConstants {
     public static final String TEAM_PERFORMANCE = "Team Performance";
 
     // Distributors
-    public static final String DISTRIBUTORS = "Distributors";
-    public static final String DISTRIBUTOR_MANAGEMENT = "Distributor Management";
+    public static final String DISTRIBUTORS = "Sales Agents";
+    public static final String DISTRIBUTOR_MANAGEMENT = "Management";
+    public static final String DISTRIBUTOR_DASHBOARD = "Distributor Dashboard";
     public static final String ITEMS = "Items";
     public static final String DISTRIBUTOR_USERS = "Distributor Users";
 

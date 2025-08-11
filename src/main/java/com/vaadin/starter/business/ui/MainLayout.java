@@ -24,11 +24,7 @@ import com.vaadin.starter.business.ui.components.navigation.drawer.NaviMenu;
 import com.vaadin.starter.business.ui.constants.NavigationConstants;
 import com.vaadin.starter.business.ui.util.UIUtils;
 import com.vaadin.starter.business.ui.util.css.Overflow;
-import com.vaadin.starter.business.ui.views.Home;
-import com.vaadin.starter.business.ui.views.dashboard.DailyPerformanceMetrics;
-import com.vaadin.starter.business.ui.views.dashboard.OperationalAlerts;
 import com.vaadin.starter.business.ui.views.dashboard.OperationsOverview;
-import com.vaadin.starter.business.ui.views.dashboard.ServiceLevelIndicators;
 import com.vaadin.starter.business.ui.views.distributors.DistributorManagement;
 import com.vaadin.starter.business.ui.views.distributors.DistributorUsers;
 import com.vaadin.starter.business.ui.views.distributors.Items;
@@ -130,17 +126,16 @@ public class MainLayout extends FlexBoxLayout
 	 */
 	private void initNaviItems() {
 		NaviMenu menu = naviDrawer.getMenu();
-		NaviItem home = menu.addNaviItem(VaadinIcon.HOME, NavigationConstants.HOME, Home.class);
-		home.setTitle(NavigationConstants.HOME);
-
 		NaviItem dashboard = menu.addNaviItem(VaadinIcon.DASHBOARD, NavigationConstants.DASHBOARD,
-				null);
+				OperationsOverview.class);
 		dashboard.setTitle(NavigationConstants.DASHBOARD);
-		menu.addNaviItem(dashboard, NavigationConstants.OPERATIONS_OVERVIEW, OperationsOverview.class);
-		menu.addNaviItem(dashboard, NavigationConstants.DAILY_PERFORMANCE_METRICS, DailyPerformanceMetrics.class);
-		menu.addNaviItem(dashboard, NavigationConstants.SERVICE_LEVEL_INDICATORS, ServiceLevelIndicators.class);
-		menu.addNaviItem(dashboard, NavigationConstants.OPERATIONAL_ALERTS, OperationalAlerts.class);
-		dashboard.setSubItemsVisible(false);
+
+		NaviItem clients = menu.addNaviItem(VaadinIcon.USERS, NavigationConstants.CLIENTS,
+				null);
+		clients.setTitle(NavigationConstants.CLIENTS);
+		menu.addNaviItem(clients, NavigationConstants.CLIENT_MANAGEMENT, ClientManagement.class);
+		menu.addNaviItem(clients, NavigationConstants.ONBOARDING_PROCESSES, OnboardingProcesses.class);
+		clients.setSubItemsVisible(false);
 
 		NaviItem distributors = menu.addNaviItem(VaadinIcon.PACKAGE, NavigationConstants.DISTRIBUTORS,
 				null);
@@ -150,14 +145,6 @@ public class MainLayout extends FlexBoxLayout
 		menu.addNaviItem(distributors, NavigationConstants.DISTRIBUTOR_USERS, DistributorUsers.class);
 		distributors.setSubItemsVisible(false);
 
-		NaviItem clients = menu.addNaviItem(VaadinIcon.USERS, NavigationConstants.CLIENTS,
-				null);
-		clients.setTitle(NavigationConstants.CLIENTS);
-		menu.addNaviItem(clients, NavigationConstants.CLIENT_MANAGEMENT, ClientManagement.class);
-		menu.addNaviItem(clients, NavigationConstants.CONTRACTS, Contracts.class);
-		menu.addNaviItem(clients, NavigationConstants.ONBOARDING_PROCESSES, OnboardingProcesses.class);
-		menu.addNaviItem(clients, NavigationConstants.AML_KYC_CASES, AmlKycCases.class);
-		clients.setSubItemsVisible(false);
 	}
 
 	/**
@@ -271,7 +258,7 @@ public class MainLayout extends FlexBoxLayout
 		NaviItem active = getActiveItem(e);
 		if (active == null) {
 			if (tabBar.getTabCount() == 0) {
-				tabBar.addClosableTab("", Home.class);
+				tabBar.addClosableTab("", OperationsOverview.class);
 			}
 		} else {
 			if (tabBar.getTabCount() > 0) {
