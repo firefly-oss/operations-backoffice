@@ -1,24 +1,6 @@
-/target/
-.idea/
-.vscode/
-.settings
-.project
-.classpath
-
-*.iml
-.DS_Store
-# The following files are generated/updated by vaadin-maven-plugin
-node_modules/
-src/main/frontend/generated/
-vite.generated.ts
-webpack.generated.js
-.vaadin/
-flow-build/
-frontend/generated/
-pnpm-lock.yaml
-package-lock.json
 # Compiled class file
 *.class
+
 # Log file
 *.log
 # BlueJ files
@@ -37,6 +19,8 @@ package-lock.json
 hs_err_pid*
 replay_pid*
 # IntelliJ IDEA specific files
+.idea/
+*.iml
 *.iws
 # Target folder
 target/
@@ -46,7 +30,7 @@ target/
 .refactor-backup-*/
 *.refactor-backup-*
 
-# Additional Maven patterns added Fri Aug 29 20:30:46 CEST 2025
+# Additional Maven patterns added Fri Aug 29 20:28:01 CEST 2025
 **/target/generated-sources/
 **/target/generated-test-sources/
 **/target/generated-resources/
